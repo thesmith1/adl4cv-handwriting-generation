@@ -7,5 +7,5 @@ To create a new virtual environment with the required dependencies:
 
 ```conda env create -f adl4cv-env.yml```
 
-## Structure
+## File Structure
 The folder `model/` contains the GAN classes and the models of all discriminators and generators.
