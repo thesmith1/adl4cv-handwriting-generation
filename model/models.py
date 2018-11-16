@@ -1,6 +1,6 @@
 from torch.autograd import Variable
 
-from .componentsGAN import ConditionalDiscriminator, ConditionalGenerator
+from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 
 
 class D1(ConditionalDiscriminator):

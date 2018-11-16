@@ -4,8 +4,8 @@ from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader
 
-from .componentsGAN import ConditionalGenerator, ConditionalDiscriminator
-from .models import G1, D1
+from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
+from models import G1, D1
 
 
 class cGAN:
