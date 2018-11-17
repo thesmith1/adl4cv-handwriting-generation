@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from models import G1, D1
+from data_management.character_dataset import CharacterDataset
 
 
 class cGAN:
@@ -34,7 +35,7 @@ class cGAN:
         # Iterate epochs
         for epoch in range(n_epochs):
             # Iterate the dataset
-            for X, c in self._dataset_loader:
+            for X, c, style in self._dataset_loader:  # TODO: use style
                 # Sample data
                 z = Variable(torch.randn(self._noise_shape))
                 X = Variable(torch.from_numpy(X))
@@ -83,5 +84,7 @@ if __name__ == '__main__':
     d = D1()
     g_adam = Adam(g.parameters())
     d_adam = Adam(d.parameters())
-    gan = cGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, None, True)
+    d = CharacterDataset('../data/img/', '../data/labels_test.txt')
+    loader = DataLoader(d, batch_size=3, shuffle=True)
+    gan = cGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, True)
     gan.train(100)

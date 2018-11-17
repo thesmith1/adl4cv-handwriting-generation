@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from sys import argv
+from sys import argv, exit
 FATAL = -1
 
 win_name = "Crop image"
