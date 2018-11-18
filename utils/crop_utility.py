@@ -4,6 +4,7 @@ from sys import argv, exit
 FATAL = -1
 
 win_name = "Crop image"
+dest_save_folder = "../data/img"
 rectangle_shape = (50, 50)
 white = (255, 255, 255)
 DEBUG = False
@@ -21,21 +22,30 @@ class Rectangle:
         return self.x0 <= x <= (self.x0 + self.w) and self.y0 <= y <= (self.y0 + self.h)
 
 
-class RectangleDragHandler:
+class WindowOperationHandler:
 
-    def __init__(self, window, rectangle):
+    def __init__(self, window, image, rectangle, save_folder):
         self.window = window
+        self.image = image
         self.rectangle = rectangle
+        self.save_folder = save_folder
         self.dragging = False
         self.resizing = False
         self.previous_top_left_coordinates = (0, 0)
         self.previous_coordinates = (0, 0)
 
-    def mouse_callback(self, event, x, y, flags=None, param=None):
+    def save_crop(self):
+        x1, y1 = self.rectangle.x0, self.rectangle.y0
+        x2, y2 = x1 + self.rectangle.w, y1 + self.rectangle.h
+        cropped_image = self.image[y1:y2, x1:x2]
+        filename = "img.jpg"
+        cv2.imwrite(self.save_folder + "/{}".format(filename), cropped_image)
+        print("Crop saved as '%s' in '%s'." % (filename, self.save_folder))
 
+    def mouse_callback(self, event, x, y, flags=None, param=None):
         if event == cv2.EVENT_LBUTTONDBLCLK:
             if self.rectangle.is_point_inside(point=(x, y)):
-                # TODO: insert code to save image
+                self.save_crop()
                 if DEBUG:
                     print("Detected double click inside rectangle!")
             else:
@@ -82,7 +92,7 @@ def main_program_window(image):
     h_rect, w_rect = rectangle_shape
     x0_rect, y0_rect = (w - w_rect) // 2, (h - h_rect) // 2
     rect = Rectangle(p0=(x0_rect, y0_rect), height=h_rect, width=w_rect)
-    handler = RectangleDragHandler(win_name, rect)
+    handler = WindowOperationHandler(win_name, image, rect, dest_save_folder)
     cv2.setMouseCallback(win_name, handler.mouse_callback)
 
     done = False
