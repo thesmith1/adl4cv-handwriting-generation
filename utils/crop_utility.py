@@ -6,6 +6,7 @@ FATAL = -1
 win_name = "Crop image"
 rectangle_shape = (50, 50)
 white = (255, 255, 255)
+DEBUG = False
 
 
 class Rectangle:
@@ -26,6 +27,7 @@ class RectangleDragHandler:
         self.window = window
         self.rectangle = rectangle
         self.dragging = False
+        self.resizing = False
         self.previous_top_left_coordinates = (0, 0)
         self.previous_coordinates = (0, 0)
 
@@ -33,28 +35,48 @@ class RectangleDragHandler:
 
         if event == cv2.EVENT_LBUTTONDBLCLK:
             if self.rectangle.is_point_inside(point=(x, y)):
-                print("Double click inside rectangle!")
+                # TODO: insert code to save image
+                if DEBUG:
+                    print("Detected double click inside rectangle!")
             else:
-                print("Double click!")
+                if DEBUG:
+                    print("Detected double click outside rectangle!")
         elif event == cv2.EVENT_LBUTTONDOWN:
             if self.rectangle.is_point_inside(point=(x, y)):
                 self.dragging = True
                 self.previous_top_left_coordinates = self.rectangle.x0, self.rectangle.y0
                 self.previous_coordinates = x, y
-                print("Dragging")
+                if DEBUG:
+                    print("Dragging")
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.dragging:
                 self.rectangle.x0 = x - self.previous_coordinates[0] + self.previous_top_left_coordinates[0]
                 self.rectangle.y0 = y - self.previous_coordinates[1] + self.previous_top_left_coordinates[1]
+            elif self.resizing:
+                self.rectangle.w = x - self.rectangle.x0
+                self.rectangle.h = y - self.rectangle.y0
+                if DEBUG:
+                    print("Resizing")
         elif event == cv2.EVENT_LBUTTONUP:
             self.dragging = False
-
-            print("Stopped dragging")
+            if DEBUG:
+                print("Stopped dragging")
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            if self.rectangle.is_point_inside(point=(x, y)):
+                self.resizing = True
+                if DEBUG:
+                    print("Detected right click inside rectangle!")
+        elif event == cv2.EVENT_RBUTTONUP:
+            if self.resizing:
+                self.resizing = False
+                if DEBUG:
+                    print("Stopped resizing")
 
 
 def main_program_window(image):
     h, w, _ = img.shape
 
+    cv2.namedWindow(win_name, cv2.WINDOW_GUI_NORMAL)
     cv2.imshow(win_name, image)
 
     h_rect, w_rect = rectangle_shape
@@ -67,7 +89,7 @@ def main_program_window(image):
     while not done:
 
         image_with_rect = np.copy(image)
-        cv2.rectangle(image_with_rect, pt1=(rect.x0, rect.y0), pt2=(rect.x0 + w_rect, rect.y0 + h_rect), color=white)
+        cv2.rectangle(image_with_rect, pt1=(rect.x0, rect.y0), pt2=(rect.x0 + rect.w, rect.y0 + rect.h), color=white)
         cv2.imshow(win_name, image_with_rect)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             done = True
