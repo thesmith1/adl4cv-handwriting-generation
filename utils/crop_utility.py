@@ -1,11 +1,12 @@
 import cv2
 import numpy as np
+import os
 from sys import argv, exit
 FATAL = -1
 
 win_name = "Crop image"
 dest_save_folder = "../data/img"
-rectangle_shape = (50, 50)
+init_rectangle_shape = (50, 50)
 white = (255, 255, 255)
 DEBUG = False
 
@@ -24,22 +25,33 @@ class Rectangle:
 
 class WindowOperationHandler:
 
-    def __init__(self, window, image, rectangle, save_folder):
+    def __init__(self, window, image, init_rectangle, save_folder):
         self.window = window
         self.image = image
-        self.rectangle = rectangle
+        self.rectangle = init_rectangle
         self.save_folder = save_folder
+        self.taken_filenames = set()
+        self.current_filename_index = self.load_current_index()
+
         self.dragging = False
         self.resizing = False
         self.previous_top_left_coordinates = (0, 0)
         self.previous_coordinates = (0, 0)
 
+    def load_current_index(self):
+        all_image_filenames = [filename for filename in os.listdir(self.save_folder) if ".jpg" in filename]
+        all_indices = {int(filename.replace(".jpg", "")) for filename in all_image_filenames}
+        current_index = max(all_indices) if len(all_indices) > 0 else 0
+        return current_index
+
     def save_crop(self):
         x1, y1 = self.rectangle.x0, self.rectangle.y0
         x2, y2 = x1 + self.rectangle.w, y1 + self.rectangle.h
         cropped_image = self.image[y1:y2, x1:x2]
-        filename = "img.jpg"
-        cv2.imwrite(self.save_folder + "/{}".format(filename), cropped_image)
+
+        self.current_filename_index += 1
+        filename = "{}.jpg".format(self.current_filename_index)
+        cv2.imwrite(os.path.join(self.save_folder, filename), cropped_image)
         print("Crop saved as '%s' in '%s'." % (filename, self.save_folder))
 
     def mouse_callback(self, event, x, y, flags=None, param=None):
@@ -89,7 +101,7 @@ def main_program_window(image):
     cv2.namedWindow(win_name, cv2.WINDOW_GUI_NORMAL)
     cv2.imshow(win_name, image)
 
-    h_rect, w_rect = rectangle_shape
+    h_rect, w_rect = init_rectangle_shape
     x0_rect, y0_rect = (w - w_rect) // 2, (h - h_rect) // 2
     rect = Rectangle(p0=(x0_rect, y0_rect), height=h_rect, width=w_rect)
     handler = WindowOperationHandler(win_name, image, rect, dest_save_folder)
