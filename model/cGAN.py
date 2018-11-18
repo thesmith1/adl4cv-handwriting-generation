@@ -9,7 +9,7 @@ from models import G1, D1
 from data_management.character_dataset import CharacterDataset
 
 
-class cGAN:
+class CGAN:
     def __init__(self, G: ConditionalGenerator, D: ConditionalDiscriminator,
                  G_loss: _Loss, D_loss: _Loss,
                  G_optim: Optimizer, D_optim: Optimizer,
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     d = D1()
     g_adam = Adam(g.parameters())
     d_adam = Adam(d.parameters())
-    d = CharacterDataset('../data/img/', '../data/labels_test.txt')
+    ds = CharacterDataset('../data/img/', '../data/labels_test.txt')
     loader = DataLoader(d, batch_size=3, shuffle=True)
-    gan = cGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, True)
+    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, True)
     gan.train(100)
