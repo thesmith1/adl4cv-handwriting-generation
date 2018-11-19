@@ -3,10 +3,14 @@ from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose, ToTensor
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from models import G1, D1
 from data_management.character_dataset import CharacterDataset
+from condition_encoding import character_to_one_hot
+from global_vars import NOISE_LENGTH
+from numpy.random import randn
 
 
 class CGAN:
@@ -23,7 +27,6 @@ class CGAN:
         self._D_loss = D_loss
         self._cuda = is_cuda
         self._dataset_loader = dataset_loader
-        self._noise_shape = [100, 100]  # TODO: set noise shape
         if self._cuda:
             self._G.cuda()
             self._D.cuda()
@@ -37,8 +40,10 @@ class CGAN:
             # Iterate the dataset
             for X, c, style in self._dataset_loader:  # TODO: use style
                 # Sample data
-                z = Variable(torch.randn(self._noise_shape))
-                X = Variable(torch.from_numpy(X))
+                z = Variable(torch.from_numpy(randn(NOISE_LENGTH)))
+                # z = Variable(torch.randn((NOISE_LENGTH,), dtype=np.float))
+                X = Variable(X)
+                c = character_to_one_hot(c)
                 c = Variable(torch.from_numpy(c))
                 if self._cuda:
                     z.cuda()
@@ -61,7 +66,7 @@ class CGAN:
                 self._D_optim.zero_grad()
 
                 # Generator forward-loss-backward-update
-                z = Variable(torch.randn(self._noise_shape))
+                z = Variable(torch.randn((NOISE_LENGTH,)))
                 if self._cuda:
                     z.cuda()
                 G_sample = self._G(z, c)
@@ -84,7 +89,7 @@ if __name__ == '__main__':
     d = D1()
     g_adam = Adam(g.parameters())
     d_adam = Adam(d.parameters())
-    ds = CharacterDataset('../data/img/', '../data/labels_test.txt')
-    loader = DataLoader(d, batch_size=3, shuffle=True)
+    dataset = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([ToTensor()]))
+    loader = DataLoader(dataset, batch_size=1, shuffle=True)
     gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, True)
     gan.train(100)
