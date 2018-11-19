@@ -5,14 +5,14 @@ from PIL.Image import open
 
 
 class CharacterDataset(Dataset):
-    def __init__(self, img_folder_path: str, labels_file_path: str):
+    def __init__(self, img_folder_path: str, labels_file_path: str, transform: Compose):
         self._images = []
         self._labels = []
         self._styles = []
         self._images_names = []
         self._img_folder_path = img_folder_path
         self._labels_file_path = labels_file_path
-        self._transform = Compose([ToTensor()])
+        self._transform = transform
         self.load_labels()
         assert len(self._images) == len(self._labels) == len(self._styles)
 
@@ -43,7 +43,7 @@ class CharacterDataset(Dataset):
 
 
 if __name__ == '__main__':
-    d = CharacterDataset('../data/img/', '../data/labels_test.txt')
+    d = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([ToTensor()]))
     loader = DataLoader(d, batch_size=3, shuffle=True)
     for epoch in range(100):
         for batch in loader:

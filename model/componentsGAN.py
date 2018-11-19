@@ -8,7 +8,6 @@ class ConditionalDiscriminator(Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()
-        raise NotImplementedError('Should have implemented this.')
 
     def __call__(self, x: Variable, c: Variable):
         self.forward(x, c)
@@ -22,7 +21,6 @@ class ConditionalGenerator(Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()
-        raise NotImplementedError('Should have implemented this.')
 
     def __call__(self, z: Variable, c: Variable):
         self.forward(z, c)
