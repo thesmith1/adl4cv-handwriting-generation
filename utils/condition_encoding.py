@@ -1,5 +1,5 @@
 import numpy as np
-from global_vars import character_to_index_mapping, NUM_CHAR
+from global_vars import character_to_index_mapping, NUM_CHARS
 
 
 def character_to_index(char):
@@ -13,9 +13,9 @@ def character_to_index(char):
 
 
 def index_to_one_hot(idx):
-    ret = np.zeros((NUM_CHAR, len(idx)))
+    ret = np.zeros((len(idx), NUM_CHARS, 1))
     for i, el in enumerate(idx):
-        ret[el, i] = 1
+        ret[i, el] = 1
     return ret
 
 

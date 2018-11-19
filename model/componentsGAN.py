@@ -10,7 +10,11 @@ class ConditionalDiscriminator(Module, metaclass=abc.ABCMeta):
         super().__init__()
 
     def __call__(self, x: Variable, c: Variable):
-        self.forward(x, c)
+        return self.forward(x, c)
+
+    @abc.abstractmethod
+    def cuda(self, device=None):
+        raise NotImplementedError('Should have implemented this.')
 
     @abc.abstractmethod
     def forward(self, x: Variable, c: Variable):
@@ -23,7 +27,11 @@ class ConditionalGenerator(Module, metaclass=abc.ABCMeta):
         super().__init__()
 
     def __call__(self, z: Variable, c: Variable):
-        self.forward(z, c)
+        return self.forward(z, c)
+
+    @abc.abstractmethod
+    def cuda(self, device=None):
+        raise NotImplementedError('Should have implemented this.')
 
     @abc.abstractmethod
     def forward(self, z: Variable, c: Variable):

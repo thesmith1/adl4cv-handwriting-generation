@@ -1,7 +1,7 @@
-IMAGE_WIDTH = 256
-IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 50
+IMAGE_HEIGHT = 50
 NOISE_LENGTH = 100
-NUM_CHAR = 70
+NUM_CHARS = 70
 character_to_index_mapping = {
     'A': 0,
     'B': 1,

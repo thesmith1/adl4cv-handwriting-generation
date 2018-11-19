@@ -1,16 +1,16 @@
 import torch
+from numpy.random import randn
 from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, ToTensor
+from torchvision.transforms import Compose, ToTensor, Pad
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
-from models import G1, D1
-from data_management.character_dataset import CharacterDataset
 from condition_encoding import character_to_one_hot
+from data_management.character_dataset import CharacterDataset
 from global_vars import NOISE_LENGTH
-from numpy.random import randn
+from models import G1, D1
 
 
 class CGAN:
@@ -30,25 +30,28 @@ class CGAN:
         if self._cuda:
             self._G.cuda()
             self._D.cuda()
+        print(torch.cuda.memory_allocated(0))
 
     def train(self, n_epochs: int):
-        zero_label = Variable(torch.zeros(1, 1))
-        one_label = Variable(torch.ones(1, 1))
+        zero_label = Variable(torch.zeros(loader.batch_size, 1))
+        one_label = Variable(torch.ones(loader.batch_size, 1))
+        if self._cuda:
+            zero_label = zero_label.cuda()
+            one_label = one_label.cuda()
 
         # Iterate epochs
         for epoch in range(n_epochs):
             # Iterate the dataset
             for X, c, style in self._dataset_loader:  # TODO: use style
                 # Sample data
-                z = Variable(torch.from_numpy(randn(NOISE_LENGTH)))
-                # z = Variable(torch.randn((NOISE_LENGTH,), dtype=np.float))
+                z = Variable(torch.from_numpy(randn(loader.batch_size, NOISE_LENGTH, 1)))
                 X = Variable(X)
                 c = character_to_one_hot(c)
                 c = Variable(torch.from_numpy(c))
                 if self._cuda:
-                    z.cuda()
-                    c.cuda()
-                    X.cuda()
+                    z = z.cuda()
+                    c = c.cuda()
+                    X = X.cuda()
 
                 # Discriminator forward-loss-backward-update
                 G_sample = self._G(z, c)
@@ -66,7 +69,7 @@ class CGAN:
                 self._D_optim.zero_grad()
 
                 # Generator forward-loss-backward-update
-                z = Variable(torch.randn((NOISE_LENGTH,)))
+                z = Variable(torch.from_numpy(randn(loader.batch_size, NOISE_LENGTH, 1)))
                 if self._cuda:
                     z.cuda()
                 G_sample = self._G(z, c)
@@ -80,16 +83,18 @@ class CGAN:
                 # Reset gradient
                 self._G_optim.zero_grad()
 
-                # TODO: Optionally print
+                if epoch % 5 == 0:
+                    print('Epoch {}: D loss {}, G loss {}'.format(epoch, D_loss, G_loss))
 
 
 if __name__ == '__main__':
     # Test cGAN class
-    g = G1()
-    d = D1()
+    use_cuda = True
+    g = G1(use_cuda)
+    d = D1(use_cuda)
     g_adam = Adam(g.parameters())
     d_adam = Adam(d.parameters())
-    dataset = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([ToTensor()]))
-    loader = DataLoader(dataset, batch_size=1, shuffle=True)
-    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, True)
+    dataset = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([Pad(7), ToTensor()]))
+    loader = DataLoader(dataset, batch_size=2, shuffle=True)
+    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, use_cuda)
     gan.train(100)
