@@ -2,13 +2,23 @@ import cv2
 import numpy as np
 import os
 from sys import argv, exit
+
 FATAL = -1
 
 win_name = "Crop image"
-dest_save_folder = "../data/img"
+dest_save_folder = "../data/raw"
 init_rectangle_shape = (50, 50)
-white = (255, 255, 255)
+resizable = False
+rectangle_color = (0, 0, 0)
 DEBUG = False
+
+# keys
+QUIT_KEY = ord('q')
+LEFT_ARROW_KEY = 81
+UP_ARROW_KEY = 82
+RIGHT_ARROW_KEY = 83
+DOWN_ARROW_KEY = 84
+RETURN_KEY = 13
 
 
 class Rectangle:
@@ -18,7 +28,6 @@ class Rectangle:
         self.w, self.h = width, height
 
     def is_point_inside(self, point):
-
         x, y = point
         return self.x0 <= x <= (self.x0 + self.w) and self.y0 <= y <= (self.y0 + self.h)
 
@@ -28,6 +37,7 @@ class WindowOperationHandler:
     def __init__(self, window, image, init_rectangle, save_folder):
         self.window = window
         self.image = image
+        self.image_with_rect = np.copy(image)
         self.rectangle = init_rectangle
         self.save_folder = save_folder
         self.taken_filenames = set()
@@ -58,6 +68,9 @@ class WindowOperationHandler:
         if event == cv2.EVENT_LBUTTONDBLCLK:
             if self.rectangle.is_point_inside(point=(x, y)):
                 self.save_crop()
+                x1, y1 = self.rectangle.x0, self.rectangle.y0
+                x2, y2 = self.rectangle.x0 + self.rectangle.w, self.rectangle.y0 + self.rectangle.h
+                cv2.rectangle(self.image, pt1=(x1, y1), pt2=(x2, y2), color=rectangle_color, thickness=-1)
                 if DEBUG:
                     print("Detected double click inside rectangle!")
             else:
@@ -74,6 +87,8 @@ class WindowOperationHandler:
             if self.dragging:
                 self.rectangle.x0 = x - self.previous_coordinates[0] + self.previous_top_left_coordinates[0]
                 self.rectangle.y0 = y - self.previous_coordinates[1] + self.previous_top_left_coordinates[1]
+                cv2.imshow("Zoom", self.image_with_rect[self.rectangle.y0:self.rectangle.y0 + self.rectangle.h,
+                                   self.rectangle.x0:self.rectangle.x0 + self.rectangle.w])
             elif self.resizing:
                 self.rectangle.w = x - self.rectangle.x0
                 self.rectangle.h = y - self.rectangle.y0
@@ -84,7 +99,7 @@ class WindowOperationHandler:
             if DEBUG:
                 print("Stopped dragging")
         elif event == cv2.EVENT_RBUTTONDOWN:
-            if self.rectangle.is_point_inside(point=(x, y)):
+            if resizable and self.rectangle.is_point_inside(point=(x, y)):
                 self.resizing = True
                 if DEBUG:
                     print("Detected right click inside rectangle!")
@@ -93,6 +108,30 @@ class WindowOperationHandler:
                 self.resizing = False
                 if DEBUG:
                     print("Stopped resizing")
+
+    def keyboard_callback(self, key):
+
+        delta_x = 0
+        delta_y = 0
+        if key == UP_ARROW_KEY:
+            delta_y = -1
+        elif key == DOWN_ARROW_KEY:
+            delta_y = 1
+        elif key == LEFT_ARROW_KEY:
+            delta_x = -1
+        elif key == RIGHT_ARROW_KEY:
+            delta_x = 1
+        elif key == RETURN_KEY:
+            self.save_crop()
+
+        # apply delta
+        if self.rectangle.x0 + delta_x >= 0 and self.rectangle.x0 + self.rectangle.w + delta_x < self.image.shape[1]:
+            self.rectangle.x0 += delta_x
+        if self.rectangle.y0 + delta_y >= 0 and self.rectangle.y0 + self.rectangle.h + delta_y < self.image.shape[0]:
+            self.rectangle.y0 += delta_y
+
+        cv2.imshow("Zoom", self.image_with_rect[self.rectangle.y0:self.rectangle.y0 + self.rectangle.h,
+                           self.rectangle.x0:self.rectangle.x0 + self.rectangle.w])
 
 
 def main_program_window(image):
@@ -111,10 +150,14 @@ def main_program_window(image):
     while not done:
 
         image_with_rect = np.copy(image)
-        cv2.rectangle(image_with_rect, pt1=(rect.x0, rect.y0), pt2=(rect.x0 + rect.w, rect.y0 + rect.h), color=white)
+        cv2.rectangle(image_with_rect, pt1=(rect.x0, rect.y0), pt2=(rect.x0 + rect.w, rect.y0 + rect.h),
+                      color=rectangle_color)
         cv2.imshow(win_name, image_with_rect)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(1)
+        if key == QUIT_KEY:
             done = True
+        elif key != -1:
+            handler.keyboard_callback(key)
 
 
 if __name__ == '__main__':
