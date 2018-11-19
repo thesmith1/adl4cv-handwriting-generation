@@ -6,10 +6,21 @@ from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 from global_vars import NOISE_LENGTH, IMAGE_WIDTH
 
 
-class D1(ConditionalDiscriminator):
+class Flatten(nn.Module):
     def __init__(self):
         super().__init__()
-        self._main = nn.Sequential(
+
+    def forward(self, *input):
+        pass  # TODO: implement flatten with correct dimensions
+
+
+class D1(ConditionalDiscriminator):
+    """
+    Discriminator of DCGAN, adapted to accept conditioning input
+    """
+    def __init__(self):
+        super().__init__()
+        self._main_conv = nn.Sequential(
             nn.Conv2d(3, IMAGE_WIDTH, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(IMAGE_WIDTH, IMAGE_WIDTH * 2, 4, 2, 1, bias=False),
@@ -20,13 +31,19 @@ class D1(ConditionalDiscriminator):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(IMAGE_WIDTH * 4, IMAGE_WIDTH * 8, 4, 2, 1, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(IMAGE_WIDTH * 8, 1, 4, 1, 0, bias=False),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self._flatten = Flatten()
+        self._main_linear = nn.Sequential(
+            nn.Linear(),  # TODO: specify the correct dimensions
             nn.Sigmoid()
         )
 
     def forward(self, x: Variable, c: Variable):
-        self._main(x)
+        x = self._main_conv(x)
+        x = self._flatten(x)
+        conditioned_input = torch.cat([x, c])
+        return self._main_linear(conditioned_input)
 
 
 class G1(ConditionalGenerator):
@@ -57,4 +74,4 @@ class G1(ConditionalGenerator):
         print(c)
         print(z.shape)
         latent_input = torch.cat([z, c])
-        self._main(latent_input)
+        return self._main(latent_input)
