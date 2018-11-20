@@ -6,12 +6,13 @@ from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 from global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
 
 
-class Flatten(nn.Module):
-    def __init__(self):
+class Reshape(nn.Module):
+    def __init__(self, shape: tuple):
         super().__init__()
+        self._shape = shape
 
     def forward(self, x):
-        return x.view(-1, 400 * 4 * 4)
+        return x.view(self._shape)
 
 
 class D1(ConditionalDiscriminator):
@@ -34,7 +35,7 @@ class D1(ConditionalDiscriminator):
             nn.BatchNorm2d(IMAGE_WIDTH * 8),
             nn.LeakyReLU(0.2, inplace=True)
         )
-        self._flatten = Flatten()
+        self._flatten = Reshape((-1, 400 * 4 * 4))
         self._main_linear = nn.Sequential(
             nn.Linear(400 * 4 * 4 + NUM_CHARS, 400),
             nn.Linear(400, 1),
@@ -60,8 +61,13 @@ class G1(ConditionalGenerator):
     def __init__(self):
         super().__init__()
         self._device = None
+        self._start_linear = nn.Sequential(
+            nn.Linear(NOISE_LENGTH + NUM_CHARS, IMAGE_WIDTH * 16 * 4 * 4),
+            nn.ReLU(True)
+        )
+        self._reshape = Reshape((-1, IMAGE_WIDTH * 16, 4, 4))
         self._main = nn.Sequential(
-            nn.ConvTranspose2d(NOISE_LENGTH + NUM_CHARS, IMAGE_WIDTH * 8, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 16, IMAGE_WIDTH * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH * 8),
             nn.ReLU(True),
             nn.ConvTranspose2d(IMAGE_WIDTH * 8, IMAGE_WIDTH * 4, 4, 2, 1, bias=False),
@@ -78,9 +84,35 @@ class G1(ConditionalGenerator):
         )
 
     def forward(self, z: Variable, c: Variable):
-        latent_input = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH+NUM_CHARS, 1, 1).float().to(device=self._device)
-        return self._main(latent_input)
+        latent_input = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH + NUM_CHARS).float().to(device=self._device)
+        x = self._start_linear(latent_input)
+        x = self._reshape(x)
+        a = self._main(x)
+        return a
 
     def to(self, *args, **kwargs):
         self._device = kwargs.get('device')
+        self._start_linear.to(device=self._device)
         self._main.to(device=self._device)
+
+
+class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
+    def __init__(self):
+        super().__init__()
+
+    def to(self, *args, **kwargs):
+        pass
+
+    def forward(self, x: Variable, c: Variable):
+        pass
+
+
+class ConditionalDCGANGenerator(ConditionalGenerator):
+    def __init__(self):
+        super().__init__()
+
+    def to(self, *args, **kwargs):
+        pass
+
+    def forward(self, z: Variable, c: Variable):
+        pass
