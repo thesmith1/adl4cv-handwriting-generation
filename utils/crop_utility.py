@@ -19,6 +19,7 @@ UP_ARROW_KEY = 82
 RIGHT_ARROW_KEY = 83
 DOWN_ARROW_KEY = 84
 RETURN_KEY = 13
+KEY_SPEED = 2
 
 
 class Rectangle:
@@ -87,8 +88,9 @@ class WindowOperationHandler:
             if self.dragging:
                 self.rectangle.x0 = x - self.previous_coordinates[0] + self.previous_top_left_coordinates[0]
                 self.rectangle.y0 = y - self.previous_coordinates[1] + self.previous_top_left_coordinates[1]
-                cv2.imshow("Zoom", self.image_with_rect[self.rectangle.y0:self.rectangle.y0 + self.rectangle.h,
-                                   self.rectangle.x0:self.rectangle.x0 + self.rectangle.w])
+                x1, y1 = self.rectangle.x0, self.rectangle.y0
+                x2, y2 = self.rectangle.x0 + self.rectangle.w, self.rectangle.y0 + self.rectangle.h
+                cv2.imshow("Zoom", self.image_with_rect[y1:y2, x1:x2])
             elif self.resizing:
                 self.rectangle.w = x - self.rectangle.x0
                 self.rectangle.h = y - self.rectangle.y0
@@ -114,13 +116,13 @@ class WindowOperationHandler:
         delta_x = 0
         delta_y = 0
         if key == UP_ARROW_KEY:
-            delta_y = -1
+            delta_y = -1*KEY_SPEED
         elif key == DOWN_ARROW_KEY:
-            delta_y = 1
+            delta_y = 1*KEY_SPEED
         elif key == LEFT_ARROW_KEY:
-            delta_x = -1
+            delta_x = -1*KEY_SPEED
         elif key == RIGHT_ARROW_KEY:
-            delta_x = 1
+            delta_x = 1*KEY_SPEED
         elif key == RETURN_KEY:
             self.save_crop()
 
@@ -130,8 +132,9 @@ class WindowOperationHandler:
         if self.rectangle.y0 + delta_y >= 0 and self.rectangle.y0 + self.rectangle.h + delta_y < self.image.shape[0]:
             self.rectangle.y0 += delta_y
 
-        cv2.imshow("Zoom", self.image_with_rect[self.rectangle.y0:self.rectangle.y0 + self.rectangle.h,
-                           self.rectangle.x0:self.rectangle.x0 + self.rectangle.w])
+        x1, y1 = self.rectangle.x0, self.rectangle.y0
+        x2, y2 = x1 + self.rectangle.w, y1 + self.rectangle.h
+        cv2.imshow("Zoom", self.image_with_rect[y1:y2, x1:x2])
 
 
 def main_program_window(image):
