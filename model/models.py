@@ -24,7 +24,7 @@ class D1(ConditionalDiscriminator):
         super().__init__()
         self._cuda = is_cuda
         self._main_conv = nn.Sequential(
-            nn.Conv2d(3, IMAGE_WIDTH, 4, 2, 1, bias=False),
+            nn.Conv2d(1, IMAGE_WIDTH, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(IMAGE_WIDTH, IMAGE_WIDTH * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH * 2),
@@ -42,7 +42,9 @@ class D1(ConditionalDiscriminator):
             nn.Linear(400, 1),
             nn.Sigmoid()
         )
-        print('Size of D mainconv: {}, D flatten {}, D mainlinear {}'.format(sys.getsizeof(self._main_conv), sys.getsizeof(self._flatten), sys.getsizeof(self._main_linear)))
+        print('Size of D mainconv: {}, D flatten {}, D mainlinear {}'.format(sys.getsizeof(self._main_conv),
+                                                                             sys.getsizeof(self._flatten),
+                                                                             sys.getsizeof(self._main_linear)))
 
     def forward(self, x: Variable, c: Variable):
         x = self._main_conv(x.float())
@@ -77,7 +79,7 @@ class G1(ConditionalGenerator):
             nn.ConvTranspose2d(IMAGE_WIDTH * 2, IMAGE_WIDTH, 4, 2, 1, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH),
             nn.ReLU(True),
-            nn.ConvTranspose2d(IMAGE_WIDTH, 3, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(IMAGE_WIDTH, 1, 4, 2, 1, bias=False),
             nn.Tanh()
         )
         print('Size of G conv {}'.format(sys.getsizeof(self._main)))
