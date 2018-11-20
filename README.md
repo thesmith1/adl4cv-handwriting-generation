@@ -10,4 +10,4 @@ To create a new virtual environment with the required dependencies:
 ## File Structure
 The folder `model/` contains the GAN classes and the models of all discriminators and generators.
 
-The folder 'data_management/' contains the class CharacterDataset.
+The folder `data_management/` contains the class CharacterDataset.

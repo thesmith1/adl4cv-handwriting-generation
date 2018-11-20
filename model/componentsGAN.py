@@ -13,7 +13,7 @@ class ConditionalDiscriminator(Module, metaclass=abc.ABCMeta):
         return self.forward(x, c)
 
     @abc.abstractmethod
-    def cuda(self, device=None):
+    def to(self, *args, **kwargs):
         raise NotImplementedError('Should have implemented this.')
 
     @abc.abstractmethod
@@ -30,7 +30,7 @@ class ConditionalGenerator(Module, metaclass=abc.ABCMeta):
         return self.forward(z, c)
 
     @abc.abstractmethod
-    def cuda(self, device=None):
+    def to(self, *args, **kwargs):
         raise NotImplementedError('Should have implemented this.')
 
     @abc.abstractmethod
