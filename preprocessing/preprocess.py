@@ -42,6 +42,9 @@ def process_image(image):
     image[:, 0:BORDER_WIDTH] = WHITE
     image[:, -BORDER_WIDTH:] = WHITE
 
+    # inversion
+    image = 255 - image
+
     return image
 
 
