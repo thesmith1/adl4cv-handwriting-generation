@@ -17,8 +17,7 @@ class CGAN:
     def __init__(self, G: ConditionalGenerator, D: ConditionalDiscriminator,
                  G_loss: _Loss, D_loss: _Loss,
                  G_optim: Optimizer, D_optim: Optimizer,
-                 dataset_loader: DataLoader,
-                 device: torch.device):
+                 dataset_loader: DataLoader):
         self._G = G
         self._D = D
         self._G_optim = G_optim
@@ -34,10 +33,10 @@ class CGAN:
         assert len(character) == 1
         c = character_to_one_hot(character)
         c = torch.from_numpy(c).to(device=device)
-        z = torch.from_numpy(randn(1, NOISE_LENGTH, 1)).to(device=self._device)
+        z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(device=self._device)
         output = self._G(z, c)
         if do_print:
-            imshow(output[0].cpu().detach().numpy().transpose(1, 2, 0).squeeze())
+            imshow(output[0].cpu().detach().numpy().transpose(1, 2, 0).squeeze(), cmap='Greys_r')
             show()
         return output
 
@@ -54,18 +53,18 @@ class CGAN:
                 self._D_optim.zero_grad()
 
                 # Sample data
-                z = torch.from_numpy(randn(len(X), NOISE_LENGTH, 1)).to(device=self._device)
-                X = X.to(device=self._device)
+                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device=device)
+                X = X.to(device=device)
                 c = character_to_one_hot(c)
-                c = torch.from_numpy(c).to(device=self._device)
+                c = torch.from_numpy(c).to(device=device)
 
                 # Discriminator forward-loss-backward-update
                 G_sample = self._G(z, c)
                 D_real = self._D(X, c)
                 D_fake = self._D(G_sample, c)
 
-                zero_label = torch.zeros(len(X), 1).to(device=self._device)
-                one_label = torch.ones(len(X), 1).to(device=self._device)
+                zero_label = torch.zeros(len(X)).to(device=device)
+                one_label = torch.ones(len(X)).to(device=device)
 
                 D_loss_real = self._D_loss(D_real, one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)
@@ -78,7 +77,7 @@ class CGAN:
                 self._G_optim.zero_grad()
 
                 # Generator forward-loss-backward-update
-                z = torch.from_numpy(randn(len(X), NOISE_LENGTH, 1)).to(self._device)
+                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device)
 
                 G_sample = self._G(z, c)
                 D_fake = self._D(G_sample, c)
@@ -91,7 +90,7 @@ class CGAN:
                 # Store max allocated GPU memory
                 max_GPU_memory = max(max_GPU_memory, torch.cuda.max_memory_allocated(torch.cuda.current_device())/1e6)
 
-            if epoch % 50 == 0:
+            if epoch % 10 == 0:
                 print('Epoch {}: D loss {}, G loss {}'.format(epoch, D_loss, G_loss))
                 print('Max GPU memory allocated: {} MB'.format(max_GPU_memory))
                 self.generate('A', True)
@@ -107,8 +106,9 @@ if __name__ == '__main__':
     g = G1()
     d = D1()
     g_adam = Adam(g.parameters())
-    d_adam = Adam(d.parameters())
-    dataset = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([Pad(7), ToTensor()]))
-    loader = DataLoader(dataset, batch_size=2, shuffle=True)
-    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader, device)
+    d_adam = Adam(d.parameters(), lr=1e-4)
+    transform = Compose([Pad(7), ToTensor()])
+    dataset = CharacterDataset('../data/processed/', '../data/labels_test.txt', transform)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader)
     gan.train(1000)

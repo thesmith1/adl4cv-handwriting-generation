@@ -13,7 +13,7 @@ def character_to_index(char):
 
 
 def index_to_one_hot(idx):
-    ret = np.zeros((len(idx), NUM_CHARS, 1))
+    ret = np.zeros((len(idx), NUM_CHARS))
     for i, el in enumerate(idx):
         ret[i, el] = 1
     return ret

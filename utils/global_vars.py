@@ -1,5 +1,5 @@
-IMAGE_WIDTH = 50
-IMAGE_HEIGHT = 50
+IMAGE_WIDTH = 64
+IMAGE_HEIGHT = 64
 NOISE_LENGTH = 100
 NUM_CHARS = 70
 character_to_index_mapping = {
