@@ -19,6 +19,7 @@ class D1(ConditionalDiscriminator):
     """
     Discriminator of DCGAN, adapted to accept conditioning input
     """
+
     def __init__(self):
         super().__init__()
         self._device = None
@@ -38,6 +39,7 @@ class D1(ConditionalDiscriminator):
         self._flatten = Reshape((-1, 512 * 4 * 4))
         self._main_linear = nn.Sequential(
             nn.Linear(512 * 4 * 4 + NUM_CHARS, 400),
+            nn.ReLU(),
             nn.Linear(400, 1),
             nn.Sigmoid()
         )
@@ -58,29 +60,27 @@ class G1(ConditionalGenerator):
     """
     Generator of DCGAN, adapted to accept conditioning input
     """
+
     def __init__(self):
         super().__init__()
         self._device = None
         self._project = nn.Sequential(nn.Linear(NOISE_LENGTH + NUM_CHARS, IMAGE_WIDTH * 16 * 4 * 4), nn.ReLU())
         self._main = nn.Sequential(
-            nn.ConvTranspose2d(IMAGE_WIDTH * 16, IMAGE_WIDTH * 8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 16, IMAGE_WIDTH * 8, kernel_size=5, stride=2, padding=2, output_padding=1),
             nn.BatchNorm2d(IMAGE_WIDTH * 8),
             nn.ReLU(True),
-            nn.ConvTranspose2d(IMAGE_WIDTH * 8, IMAGE_WIDTH * 4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 8, IMAGE_WIDTH * 4, kernel_size=5, stride=2, padding=2, output_padding=1),
             nn.BatchNorm2d(IMAGE_WIDTH * 4),
             nn.ReLU(True),
-            nn.ConvTranspose2d(IMAGE_WIDTH * 4, IMAGE_WIDTH * 2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 4, IMAGE_WIDTH * 2, kernel_size=5, stride=2, padding=2, output_padding=1),
             nn.BatchNorm2d(IMAGE_WIDTH * 2),
             nn.ReLU(True),
-            nn.ConvTranspose2d(IMAGE_WIDTH * 2, IMAGE_WIDTH, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(IMAGE_WIDTH),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(IMAGE_WIDTH, 1, 3, 1, 1, bias=False),
-            nn.Tanh()
+            nn.ConvTranspose2d(IMAGE_WIDTH * 2, 1, kernel_size=5, stride=2, padding=2, output_padding=1),
+            nn.Sigmoid()
         )
 
     def forward(self, z: Variable, c: Variable):
-        latent_input = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH+NUM_CHARS).float().to(device=self._device)
+        latent_input = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH + NUM_CHARS).float().to(device=self._device)
         input_layers = self._project(latent_input).view(-1, IMAGE_WIDTH * 16, 4, 4)
         return self._main(input_layers)
 
