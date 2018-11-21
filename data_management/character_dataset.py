@@ -43,7 +43,7 @@ class CharacterDataset(Dataset):
 
 
 if __name__ == '__main__':
-    d = CharacterDataset('../data/processed/', '../data/labels_test.txt', Compose([ToTensor()]))
+    d = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([ToTensor()]))
     loader = DataLoader(d, batch_size=3, shuffle=True)
     for epoch in range(100):
         for batch in loader:

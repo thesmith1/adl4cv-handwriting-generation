@@ -35,7 +35,6 @@ def process_image(image):
             else:
                 mu[i] = np.mean(image[z == i])
     image[z == 1] = WHITE
-    print(mu)
 
     # border removal
     image[0:BORDER_WIDTH, :] = WHITE

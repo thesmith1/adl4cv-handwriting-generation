@@ -10,7 +10,7 @@ from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
 from global_vars import NOISE_LENGTH
-from models import G1, D1
+from models import G1, D1, ConditionalDCGANDiscriminator, ConditionalDCGANGenerator
 
 
 class CGAN:
@@ -30,6 +30,7 @@ class CGAN:
         self._D.to(device=self._device)
 
     def generate(self, character: str, do_print: bool = False):
+        self._G.eval()
         assert len(character) == 1
         c = character_to_one_hot(character)
         c = torch.from_numpy(c).to(device=device)
@@ -38,6 +39,7 @@ class CGAN:
         if do_print:
             imshow(output[0].cpu().detach().numpy().transpose(1, 2, 0).squeeze(), cmap='Greys_r')
             show()
+        self._G.train()
         return output
 
     def train(self, n_epochs: int):
@@ -103,8 +105,8 @@ if __name__ == '__main__':
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    g = G1()
-    d = D1()
+    g = ConditionalDCGANGenerator()
+    d = ConditionalDCGANDiscriminator()
     g_adam = Adam(g.parameters())
     d_adam = Adam(d.parameters(), lr=1e-4)
     transform = Compose([Pad(7), ToTensor()])

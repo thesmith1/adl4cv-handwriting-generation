@@ -91,22 +91,113 @@ class G1(ConditionalGenerator):
 
 
 class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
+    """
+    Conditional Deep Convolutional GAN Discriminator from author of DCGAN paper
+    Link to existing implementation: https://github.com/Newmu/dcgan_code/blob/master/mnist/train_cond_dcgan.py
+    """
     def __init__(self):
         super().__init__()
+        self._device = None
+        self._reshape_condition = Reshape((-1, NUM_CHARS, 1, 1))
+        self._conv1 = nn.Sequential(
+            nn.Conv2d(1 + NUM_CHARS, 1 + NUM_CHARS, 5, 2, 2),
+            nn.LeakyReLU()
+        )
+        self._conv2 = nn.Sequential(
+            nn.Conv2d(1 + NUM_CHARS * 2, 64 + NUM_CHARS, 5, 2, 2),
+            nn.BatchNorm2d(64 + NUM_CHARS),
+            nn.LeakyReLU()
+        )
+        self._flatten = Reshape((-1, 64 * 2 * 268))
+        self._linear1 = nn.Sequential(
+            nn.Linear(64 * 2 * 268 + NUM_CHARS, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU()
+        )
+        self._linear2 = nn.Sequential(
+            nn.Linear(1024 + NUM_CHARS, 1),
+            nn.Sigmoid()
+        )
 
     def to(self, *args, **kwargs):
-        pass
+        self._device = kwargs.get('device')
+        self._conv1.to(device=self._device)
+        self._conv2.to(device=self._device)
+        self._linear1.to(device=self._device)
+        self._linear2.to(device=self._device)
+
+    def conv_cond_concat(self, x, y):
+        ones = torch.ones((x.shape[0], y.shape[1], x.shape[2], x.shape[3])).to(device=self._device)
+        return torch.cat([x, y*ones], dim=1)
 
     def forward(self, x: Variable, c: Variable):
-        pass
+        x = x.float().to(device=self._device)
+        c = c.float().to(device=self._device)
+        c_reshaped = self._reshape_condition(c)
+        x = self.conv_cond_concat(x, c_reshaped)
+        x = self._conv1(x)
+        x = self.conv_cond_concat(x, c_reshaped)
+        x = self._conv2(x)
+        x = self._flatten(x)
+        x = torch.cat([x, c], dim=1)
+        x = self._linear1(x)
+        x = torch.cat([x, c], dim=1)
+        x = self._linear2(x)
+        return x.squeeze()
 
 
 class ConditionalDCGANGenerator(ConditionalGenerator):
+    """
+    Conditional Deep Convolutional GAN Generator from author of DCGAN paper
+    Link to existing implementation: https://github.com/Newmu/dcgan_code/blob/master/mnist/train_cond_dcgan.py
+    """
     def __init__(self):
         super().__init__()
+        self._device = None
+        self._reshape_condition = Reshape((-1, NUM_CHARS, 1, 1))
+        self._linear1 = nn.Sequential(
+            nn.Linear(NOISE_LENGTH + NUM_CHARS, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(True)
+        )
+        self._linear2 = nn.Sequential(
+            nn.Linear(1024 + NUM_CHARS, 64 * 2 * 16 * 16),
+            nn.BatchNorm1d(64 * 2 * 16 * 16),
+            nn.ReLU(True)
+        )
+        self._reshape_input = Reshape((-1, 64 * 2, 16, 16))
+        self._conv1 = nn.Sequential(
+            nn.ConvTranspose2d(64 * 2 + NUM_CHARS, 64, 5, 2, 2, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(True)
+        )
+        self._conv2 = nn.Sequential(
+            nn.ConvTranspose2d(64 + NUM_CHARS, 1, 5, 2, 2, 1),
+            nn.Sigmoid()
+        )
 
     def to(self, *args, **kwargs):
-        pass
+        self._device = kwargs.get('device')
+        self._linear1.to(device=self._device)
+        self._linear2.to(device=self._device)
+        self._conv1.to(device=self._device)
+        self._conv2.to(device=self._device)
+
+    def conv_cond_concat(self, x, y):
+        ones = torch.ones((x.shape[0], y.shape[1], x.shape[2], x.shape[3])).to(device=self._device)
+        return torch.cat([x, y*ones], dim=1)
 
     def forward(self, z: Variable, c: Variable):
-        pass
+        z = z.float().to(device=self._device)
+        c = c.float().to(device=self._device)
+        c_reshaped = self._reshape_condition(c)
+        x = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH + NUM_CHARS)
+        x = self._linear1(x)
+        x = torch.cat([x, c], dim=1).float()
+        x = self._linear2(x)
+        x = self._reshape_input(x)
+        x = self.conv_cond_concat(x, c_reshaped)
+        x = self._conv1(x)
+        x = self.conv_cond_concat(x, c_reshaped)
+        x = self._conv2(x)
+        return x
