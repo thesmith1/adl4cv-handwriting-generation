@@ -19,7 +19,7 @@ UP_ARROW_KEY = 82
 RIGHT_ARROW_KEY = 83
 DOWN_ARROW_KEY = 84
 RETURN_KEY = 13
-KEY_SPEED = 2
+KEY_SPEED = 5
 
 
 class Rectangle:
@@ -140,7 +140,7 @@ class WindowOperationHandler:
 def main_program_window(image):
     h, w, _ = img.shape
 
-    cv2.namedWindow(win_name, cv2.WINDOW_GUI_NORMAL)
+    cv2.namedWindow(win_name, cv2.WINDOW_FULLSCREEN)
     cv2.imshow(win_name, image)
 
     h_rect, w_rect = init_rectangle_shape
@@ -154,7 +154,7 @@ def main_program_window(image):
 
         image_with_rect = np.copy(image)
         cv2.rectangle(image_with_rect, pt1=(rect.x0, rect.y0), pt2=(rect.x0 + rect.w, rect.y0 + rect.h),
-                      color=rectangle_color)
+                      color=rectangle_color, thickness=2)
         cv2.imshow(win_name, image_with_rect)
         key = cv2.waitKey(1)
         if key == QUIT_KEY:
