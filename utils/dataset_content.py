@@ -13,12 +13,13 @@ from pycrayon import CrayonClient
 from global_vars import NUM_CHARS, character_to_index_mapping
 
 # Evolutionary parameters
-target_distribution = np.ones((70,))/70
-original_text_distribution = np.zeros((70,))/70
-solution_size = 1000
-mutation_probability = 0.2
+target_distribution = np.ones((NUM_CHARS,))/NUM_CHARS
+original_text_distribution = np.zeros((NUM_CHARS,))/NUM_CHARS
+original_sequence_distribution = np.zeros((NUM_CHARS, NUM_CHARS))
+solution_size = 5000
+mutation_probability = 0.1
 crossover_probability = 1
-selection_percentage = 0.6
+selection_percentage = 0.7
 population_size = 800
 max_iterations = 100
 uppercase_probability = 0.4
@@ -55,6 +56,17 @@ def character_distribution(text: str):
     if len(text) > 0:
         distribution = distribution / distribution.sum()
     return distribution
+
+
+def sequence_distribution(text: str):
+    text = ' ' + text + ' '
+    distr = np.zeros((NUM_CHARS, NUM_CHARS))
+    seq_list = [text[i:i + 2] for i in range(0, len(text) - 1, 1)]
+    for seq in seq_list:
+        distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]]] = \
+            distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]]] + 1
+    distr = distr / np.sum(np.sum(distr))
+    return distr
 
 
 def count_duplicates(text: str):
@@ -99,9 +111,11 @@ def mean_length(individuals: list):
 
 
 def evaluate_fitness(solution: str):
-    distr = character_distribution(solution)
-    loss = np.sum(np.abs(distr - target_distribution))
-    return 1 / (loss + 1)
+    distr_char = character_distribution(solution)
+    distr_seq = sequence_distribution(solution)
+    loss_single_character = np.sum(np.abs(distr_char - target_distribution))
+    loss_sequences = np.sum(np.abs(distr_seq - original_sequence_distribution))
+    return 1 / (0.85*loss_single_character + 0.15*loss_sequences + 1)
 
 
 def single_mutation(sol: str, bag_of_words: set, mean_words_length: float):
@@ -225,6 +239,9 @@ if __name__ == '__main__':
             text = delete_duplicates(text)
             list_of_words.extend(text.split())
         bag_of_words = set(list_of_words)
+        seq_distr = sequence_distribution(' '.join(list(bag_of_words)))
+        with open('../data/original_sequence_distribution.pkl', 'wb') as output:
+            pickle.dump(seq_distr, output, pickle.HIGHEST_PROTOCOL)
         bag_of_words = set([s.lower() for s in list(bag_of_words)])
         print('Files processed.')
         with open('./bag_of_words.pkl', 'wb') as output:
@@ -235,6 +252,8 @@ if __name__ == '__main__':
     print('Total number of words: ', len(bag_of_words))
     # Compute original text distribution
     original_text_distribution = character_distribution(' '.join(list(bag_of_words)))
+    with open('../data/original_sequence_distribution.pkl', 'rb') as input:
+        original_sequence_distribution = pickle.load(input)
 
     words_length = np.array([len(x) for x in bag_of_words])
     mean_words_length = np.mean(words_length)
