@@ -3,6 +3,7 @@ from datetime import datetime
 from os import listdir
 from os.path import isfile, join
 from random import sample, choice
+import re
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -15,14 +16,14 @@ from global_vars import NUM_CHARS, character_to_index_mapping
 # Evolutionary parameters
 target_distribution = np.ones((NUM_CHARS,))/NUM_CHARS
 original_text_distribution = np.zeros((NUM_CHARS,))/NUM_CHARS
-original_sequence_distribution = np.zeros((NUM_CHARS, NUM_CHARS))
+original_sequence_distribution = np.zeros((NUM_CHARS, NUM_CHARS, NUM_CHARS))
 solution_size = 5000
 mutation_probability = 0.1
 crossover_probability = 1
 selection_percentage = 0.7
-population_size = 800
-max_iterations = 100
-uppercase_probability = 0.4
+population_size = 1000
+max_iterations = 300
+uppercase_probability = 0.7
 
 # Crayon setup
 cc = CrayonClient('localhost')
@@ -34,8 +35,9 @@ def clean_text(text: str):
     ret = ''
     char_cnt = 0
     valid_chars = set(character_to_index_mapping.keys())
+    text = re.sub(r'-+', '-', text)
     for char in text:
-        char_cnt = char_cnt+ 1
+        char_cnt = char_cnt + 1
         if char in valid_chars:
             ret = ret + char
         if char_cnt % 100000 == 0:
@@ -60,12 +62,12 @@ def character_distribution(text: str):
 
 def sequence_distribution(text: str):
     text = ' ' + text + ' '
-    distr = np.zeros((NUM_CHARS, NUM_CHARS))
-    seq_list = [text[i:i + 2] for i in range(0, len(text) - 1, 1)]
+    distr = np.zeros((NUM_CHARS, NUM_CHARS, NUM_CHARS))
+    seq_list = [text[i:i + 3] for i in range(0, len(text) - 2, 1)]
     for seq in seq_list:
-        distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]]] = \
-            distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]]] + 1
-    distr = distr / np.sum(np.sum(distr))
+        distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]], character_to_index_mapping[seq[2]]] = \
+            distr[character_to_index_mapping[seq[0]], character_to_index_mapping[seq[1]], character_to_index_mapping[seq[2]]] + 1
+    distr = distr / np.sum(np.sum(np.sum(distr)))
     return distr
 
 
@@ -176,7 +178,7 @@ def evolve(bag_of_words: set, mean_words_length, verbose: bool = False, show_int
         do_print = False
         if iter % 10 == 0:
             do_print = True
-        if show_intermediate_results and iter % 10 == 0:
+        if show_intermediate_results and iter % 20 == 0:
             show_best_result(individuals)
         if verbose:
             print('Iteration {}: Computing fitness...'.format(iter+1), end='\r')
@@ -219,12 +221,12 @@ def show_best_result(results: list):
 
 if __name__ == '__main__':
     # Adjust target distribution
-    target_distribution[0:26] = target_distribution[0:26] / 10  # Capital letters
-    target_distribution[52:68] = target_distribution[52:68] / 10  # Symbols and digits
-    target_distribution[69] = target_distribution[69] * 4  # Blank space
+    # target_distribution[0:26] = target_distribution[0:26] / 15  # Capital letters
+    # target_distribution[52:68] = target_distribution[52:68] / 15  # Symbols and digits
+    target_distribution[69] = target_distribution[69] * 3  # Blank space
     target_distribution = target_distribution / np.sum(target_distribution)
 
-    load_files = False
+    load_files = True
     list_of_words = []
     if load_files:
         folder_path = '../data/text/'
