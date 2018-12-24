@@ -21,11 +21,13 @@ RED_CHANNEL = 2
 
 def color_k_means(image, mu_init, mask=None):
 
+    orig_mask, orig_shape = mask, image.shape
     if mask is None:
-        mask = np.ones(image.shape[:2])
+        mask = np.ones(image.shape[:2], dtype=bool)
+    image = image[mask]
 
-    mu = mu_init
-    z = -1*np.ones(image.shape[:2], dtype=np.uint8)
+    mu = np.array(mu_init)
+    z = np.zeros_like(image, dtype=np.uint8)
     z_previous = np.ones_like(z)
 
     while not np.all(z == z_previous):
@@ -33,19 +35,18 @@ def color_k_means(image, mu_init, mask=None):
         z_previous = np.copy(z)
 
         # E-step
-        for i, row in enumerate(image):
-            for j, pixel in enumerate(row):
-                if mask[i, j]:
-                    distances = [np.linalg.norm(pixel - mu_i) for mu_i in mu]
-                    z[i, j] = np.argmin(distances)
+        distances = np.linalg.norm(image[None, :] - mu[:, None, :], axis=2)
+        z = np.argmin(distances, axis=0)
 
         # M-step
-        for i in (0, 1):
+        for i in range(mu.shape[0]):
             if np.sum(z == i) == 0:
                 mu[i] = mu_init[i]
             else:
                 mu[i] = np.mean(image[z == i])
 
+    if orig_mask is None:
+        z = z.reshape(orig_shape[:2])
     return z
 
 
