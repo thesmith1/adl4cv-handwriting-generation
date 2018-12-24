@@ -108,9 +108,9 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
             nn.BatchNorm2d(64 + NUM_CHARS),
             nn.LeakyReLU()
         )
-        self._flatten = Reshape((-1, 64 * 2 * 268))
+        self._flatten = Reshape((-1, 16 * 16 * (64 + NUM_CHARS)))
         self._linear1 = nn.Sequential(
-            nn.Linear(64 * 2 * 268 + NUM_CHARS, 1024),
+            nn.Linear(16 * 16 * (64 + NUM_CHARS) + NUM_CHARS, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
