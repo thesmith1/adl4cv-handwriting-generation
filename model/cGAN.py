@@ -4,6 +4,7 @@ from numpy.random import randn
 from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader
+from torch.autograd import Variable
 from torchvision.transforms import Compose, ToTensor, Pad
 from pycrayon import CrayonClient
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
@@ -12,6 +13,7 @@ from data_management.character_dataset import CharacterDataset
 from global_vars import NOISE_LENGTH
 from models import G1, D1, ConditionalDCGANDiscriminator, ConditionalDCGANGenerator
 import datetime
+import time
 
 cc = CrayonClient('localhost')
 cc.remove_all_experiments()
@@ -54,7 +56,12 @@ class CGAN:
         # Iterate epochs
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
+        G_traced = torch.jit.trace(self._G.forward,
+                                   (torch.randn(128, NOISE_LENGTH).to(device=device), torch.randn(128, 70)))
+        D_traced = torch.jit.trace(self._D.forward,
+                                   (torch.randn(128, 1, 64, 64).to(device=device), torch.randn(128, 70)))
         for epoch in range(1, n_epochs + 1):
+            start_time = time.time()
             # Iterate the dataset
             for batch_count, (X, c, style) in enumerate(self._dataset_loader):  # TODO: use style
                 # Reset gradient
@@ -67,16 +74,19 @@ class CGAN:
                 c = torch.from_numpy(c).to(device=device)
 
                 # Discriminator forward-loss-backward-update
-                G_sample = self._G(z, c)
-                D_real = self._D(X, c)
-                D_fake = self._D(G_sample.detach(), c)
+                # G_sample = self._G(z, c)
+                G_sample = G_traced(z, c)
+                # D_real = self._D(X, c)
+                D_real = D_traced(X, c)
+                # D_fake = self._D(G_sample.detach(), c)
+                D_fake = D_traced(G_sample.detach(), c)
 
                 zero_label = torch.zeros(len(X)).to(device=device)
                 one_label = torch.ones(len(X)).to(device=device)
 
                 D_loss_real = self._D_loss(D_real, one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)
-                D_loss = D_loss_real + D_loss_fake
+                D_loss = Variable(D_loss_real + D_loss_fake, requires_grad=True)
 
                 D_loss.backward()
                 self._D_optim.step(None)
@@ -87,10 +97,12 @@ class CGAN:
                 # Generator forward-loss-backward-update
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device)
 
-                G_sample = self._G(z, c)
-                D_fake = self._D(G_sample, c)
+                # G_sample = self._G(z, c)
+                G_sample = G_traced(z, c)
+                # D_fake = self._D(G_sample, c)
+                D_fake = D_traced(G_sample, c)
 
-                G_loss = self._G_loss(D_fake, one_label)
+                G_loss = Variable(self._G_loss(D_fake, one_label), requires_grad=True)
 
                 G_loss.backward()
                 self._G_optim.step(None)
@@ -107,12 +119,15 @@ class CGAN:
                       'max GPU memory allocated: {:.2f} MB'.format(epoch, batch_count, D_loss, G_loss, max_GPU_memory),
                       end='\r')
 
+            end_time = time.time()
+            print('One epoch performed in {} s'.format(end_time - start_time))
             if epoch % 10 == 0:
                 letter_to_generate = 'A' if randn(1) > 0 else 'O'
                 self.generate(letter_to_generate, True)
 
 
 if __name__ == '__main__':
+    assert(torch.__version__ == '1.0.0')
     # Test cGAN class
     use_cuda = torch.cuda.is_available()
     if use_cuda:
