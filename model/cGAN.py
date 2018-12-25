@@ -2,16 +2,15 @@ import torch
 from matplotlib.pyplot import imshow, show, figure
 from numpy.random import randn
 from torch.nn.modules.loss import _Loss, BCELoss
-from torch.optim import Optimizer, Adam
+from torch.optim import Optimizer, Adam, SGD
 from torch.utils.data import DataLoader
-from torch.autograd import Variable
 from torchvision.transforms import Compose, ToTensor, Pad
 from pycrayon import CrayonClient
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
-from global_vars import NOISE_LENGTH
-from models import G1, D1, ConditionalDCGANDiscriminator, ConditionalDCGANGenerator
+from global_vars import NOISE_LENGTH, NUM_CHARS
+from models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
 import datetime
 import time
 
@@ -52,17 +51,25 @@ class CGAN:
         return output
 
     def train(self, n_epochs: int):
+
         max_GPU_memory = 0
-        # Iterate epochs
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
-        G_traced = torch.jit.trace(self._G.forward,
-                                   (torch.randn(128, NOISE_LENGTH).to(device=device), torch.randn(128, 70)))
-        D_traced = torch.jit.trace(self._D.forward,
-                                   (torch.randn(128, 1, 64, 64).to(device=device), torch.randn(128, 70)))
+
+        # produced JIT models
+        G_traced = torch.jit.trace(self._G, (torch.randn(128, NOISE_LENGTH).to(device),
+                                             torch.randn(128, NUM_CHARS).to(device)))
+        D_traced = torch.jit.trace(self._D, (torch.randn(128, 1, 64, 64).to(device),
+                                             torch.randn(128, NUM_CHARS).to(device)))
+
+        # Epoch iteration
         for epoch in range(1, n_epochs + 1):
+
+            self._G.train()
+            self._D.train()
+
+            # Iterate over the dataset
             start_time = time.time()
-            # Iterate the dataset
             for batch_count, (X, c, style) in enumerate(self._dataset_loader):  # TODO: use style
                 # Reset gradient
                 self._D_optim.zero_grad()
@@ -86,7 +93,7 @@ class CGAN:
 
                 D_loss_real = self._D_loss(D_real, one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)
-                D_loss = Variable(D_loss_real + D_loss_fake, requires_grad=True)
+                D_loss = (D_loss_real + D_loss_fake) / 2
 
                 D_loss.backward()
                 self._D_optim.step(None)
@@ -102,7 +109,7 @@ class CGAN:
                 # D_fake = self._D(G_sample, c)
                 D_fake = D_traced(G_sample, c)
 
-                G_loss = Variable(self._G_loss(D_fake, one_label), requires_grad=True)
+                G_loss = self._G_loss(D_fake, one_label)
 
                 G_loss.backward()
                 self._G_optim.step(None)
@@ -115,19 +122,24 @@ class CGAN:
                 exp.add_scalar_value("Loss/Discriminator", D_loss.item())
                 exp.add_scalar_value("Discriminator response/to real images (average)", D_real.mean().item())
                 exp.add_scalar_value("Discriminator response/to fake images (average)", D_fake.mean().item())
-                print('Epoch {}, batch: {}: D loss {:4f}, G loss {:4f}, '
-                      'max GPU memory allocated: {:.2f} MB'.format(epoch, batch_count, D_loss, G_loss, max_GPU_memory),
+                print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
+                      'max GPU memory allocated {:.2f} MB'.format(epoch, batch_count + 1, len(self._dataset_loader),
+                                                                  D_loss, G_loss, max_GPU_memory),
                       end='\r')
 
             end_time = time.time()
-            print('One epoch performed in {} s'.format(end_time - start_time))
-            if epoch % 10 == 0:
+            print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
+            if epoch % 5 == 0:
                 letter_to_generate = 'A' if randn(1) > 0 else 'O'
                 self.generate(letter_to_generate, True)
 
+            if epoch % 100 == 0:
+                torch.save(g, "../data/models/gen.pth")
+                torch.save(d, "../data/models/dis.pth")
+
 
 if __name__ == '__main__':
-    assert(torch.__version__ == '1.0.0')
+
     # Test cGAN class
     use_cuda = torch.cuda.is_available()
     if use_cuda:
@@ -136,12 +148,10 @@ if __name__ == '__main__':
         device = torch.device('cpu')
     g = ConditionalDCGANGenerator()
     d = ConditionalDCGANDiscriminator()
-    g_adam = Adam(g.parameters(), lr=1e-3)
-    d_adam = Adam(d.parameters(), lr=1e-5)
+    g_adam = Adam(g.parameters(), lr=1e-4)
+    d_adam = SGD(d.parameters(), lr=1e-3)  # momentum and nesterov update seem inefficient
     transform = Compose([Pad(7), ToTensor()])
-    dataset = CharacterDataset('../data/processed/', '../data/labels_test.txt', transform)
+    dataset = CharacterDataset('../data/small/processed/', '../data/labels_test.txt', transform)
     loader = DataLoader(dataset, batch_size=128, shuffle=True)
-    gan = CGAN(g, d, BCELoss(), BCELoss(), g_adam, d_adam, loader)
-    gan.train(1000)
-    torch.save(g, "../data/models/gen.pth")
-    torch.save(d, "../data/models/dis.pth")
+    gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam, dataset_loader=loader)
+    gan.train(10000)
