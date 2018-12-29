@@ -25,7 +25,9 @@ UP_ARROW_KEY = 82
 RIGHT_ARROW_KEY = 83
 DOWN_ARROW_KEY = 84
 RETURN_KEY = 13
-KEY_SPEED = 10
+DEF_KEY_SPEED = 10
+INCR_SPEED_KEY = ord('+')
+DECR_SPEED_KEY = ord('-')
 
 
 class Rectangle:
@@ -47,6 +49,8 @@ class WindowOperationHandler:
         self.image_drawable = np.copy(image)
         self.rectangle = init_rectangle
         self.save_folder = save_folder
+
+        self.key_speed = DEF_KEY_SPEED
 
         self.text = text
         self.previous_char = " "
@@ -142,19 +146,28 @@ class WindowOperationHandler:
         delta_x = 0
         delta_y = 0
         if key == UP_ARROW_KEY:
-            delta_y = -1 * KEY_SPEED
+            delta_y = -1 * self.key_speed
         elif key == DOWN_ARROW_KEY:
-            delta_y = 1 * KEY_SPEED
+            delta_y = 1 * self.key_speed
         elif key == LEFT_ARROW_KEY:
-            delta_x = -1 * KEY_SPEED
+            delta_x = -1 * self.key_speed
         elif key == RIGHT_ARROW_KEY:
-            delta_x = 1 * KEY_SPEED
+            delta_x = 1 * self.key_speed
         elif key == CARRIAGE_RETURN_KEY:
             new_y0 = self.rectangle.y0
             self.rectangle.x0 = START_X
             if self.rectangle.y0 + 2*self.rectangle.h < self.image.shape[0]:
                 new_y0 = self.rectangle.y0 + self.rectangle.h
             self.rectangle.y0 = new_y0
+        elif key == INCR_SPEED_KEY:
+            self.key_speed += 1
+            print("New key speed value is %d" % self.key_speed)
+        elif key == DECR_SPEED_KEY:
+            if self.key_speed > 1:
+                self.key_speed -= 1
+                print("New key speed value is %d" % self.key_speed)
+            else:
+                print("Key speed is already minimized (value is %d)" % self.key_speed)
         elif key == RETURN_KEY:
             self.save_crop()
             x1, y1 = self.rectangle.x0, self.rectangle.y0
@@ -184,7 +197,7 @@ def main_program_window(image, text, args):
     cv2.imshow(win_name, image)
 
     h_rect, w_rect = rectangle_shape
-    assert START_Y < h and START_X <w
+    assert START_Y < h and START_X < w
     x0_rect, y0_rect = START_X, START_Y
     rect = Rectangle(p0=(x0_rect, y0_rect), height=h_rect, width=w_rect)
     handler = WindowOperationHandler(win_name, image, rect, dest_save_folder, text)
