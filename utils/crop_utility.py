@@ -8,13 +8,16 @@ FATAL = -1
 
 valid_style_ids = [0, 1]
 win_name = "Crop image"
+main_window_mode = cv2.WINDOW_KEEPRATIO  # cv2.WINDOW_FULLSCREEN
 dest_save_folder = "../data/big/raw"
-rectangle_shape = (90, 30)  # height must be tuned to match the height of two lines in a college-ruled notebook
+rectangle_shape = (420, 140)  # first param. must be tuned to match the height of two lines in a college-ruled notebook
+START_X, START_Y = 800, 400
 resizable = False
 rectangle_color = (0, 0, 0)
 DEBUG = False
 
 # keys
+CARRIAGE_RETURN_KEY = ord('r')
 QUIT_KEY = ord('q')
 INPUT_KEY = ord('i')
 LEFT_ARROW_KEY = 81
@@ -22,7 +25,7 @@ UP_ARROW_KEY = 82
 RIGHT_ARROW_KEY = 83
 DOWN_ARROW_KEY = 84
 RETURN_KEY = 13
-KEY_SPEED = 1
+KEY_SPEED = 10
 
 
 class Rectangle:
@@ -146,6 +149,12 @@ class WindowOperationHandler:
             delta_x = -1 * KEY_SPEED
         elif key == RIGHT_ARROW_KEY:
             delta_x = 1 * KEY_SPEED
+        elif key == CARRIAGE_RETURN_KEY:
+            new_y0 = self.rectangle.y0
+            self.rectangle.x0 = START_X
+            if self.rectangle.y0 + 2*self.rectangle.h < self.image.shape[0]:
+                new_y0 = self.rectangle.y0 + self.rectangle.h
+            self.rectangle.y0 = new_y0
         elif key == RETURN_KEY:
             self.save_crop()
             x1, y1 = self.rectangle.x0, self.rectangle.y0
@@ -171,11 +180,12 @@ def save_label_file(label_file_path, annotations, style_id):
 
 def main_program_window(image, text, args):
     h, w, _ = image.shape
-    cv2.namedWindow(win_name, cv2.WINDOW_FULLSCREEN)
+    cv2.namedWindow(win_name, main_window_mode)
     cv2.imshow(win_name, image)
 
     h_rect, w_rect = rectangle_shape
-    x0_rect, y0_rect = (w - w_rect) // 2, (h - h_rect) // 2
+    assert START_Y < h and START_X <w
+    x0_rect, y0_rect = START_X, START_Y
     rect = Rectangle(p0=(x0_rect, y0_rect), height=h_rect, width=w_rect)
     handler = WindowOperationHandler(win_name, image, rect, dest_save_folder, text)
     cv2.setMouseCallback(win_name, handler.mouse_callback)
