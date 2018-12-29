@@ -5,16 +5,21 @@ from sys import exit
 import argparse
 
 FATAL = -1
+DEBUG = False
 
 valid_style_ids = [0, 1]
 win_name = "Crop image"
 main_window_mode = cv2.WINDOW_KEEPRATIO  # cv2.WINDOW_FULLSCREEN
 dest_save_folder = "../data/big/raw"
+
 rectangle_shape = (420, 140)  # first param. must be tuned to match the height of two lines in a college-ruled notebook
 START_X, START_Y = 800, 400
-resizable = False
+rectangle_resizable = False
 rectangle_color = (0, 0, 0)
-DEBUG = False
+
+halfway_line_color = (0, 0, 0)
+halfway_line_visible = True
+
 
 # keys
 CARRIAGE_RETURN_KEY = ord('r')
@@ -120,7 +125,7 @@ class WindowOperationHandler:
                 self.rectangle.y0 = y - self.previous_coordinates[1] + self.previous_top_left_coordinates[1]
                 x1, y1 = self.rectangle.x0, self.rectangle.y0
                 x2, y2 = self.rectangle.x0 + self.rectangle.w, self.rectangle.y0 + self.rectangle.h
-                cv2.imshow("Zoom", self.image[y1:y2, x1:x2])
+                self.update_zoom_window(p1=(x1, y1), p2=(x2, y2), draw_halfway_line=halfway_line_visible)
             elif self.resizing:
                 self.rectangle.w = x - self.rectangle.x0
                 self.rectangle.h = y - self.rectangle.y0
@@ -131,7 +136,7 @@ class WindowOperationHandler:
             if DEBUG:
                 print("Stopped dragging")
         elif event == cv2.EVENT_RBUTTONDOWN:
-            if resizable and self.rectangle.is_point_inside(point=(x, y)):
+            if rectangle_resizable and self.rectangle.is_point_inside(point=(x, y)):
                 self.resizing = True
                 if DEBUG:
                     print("Detected right click inside rectangle!")
@@ -140,6 +145,15 @@ class WindowOperationHandler:
                 self.resizing = False
                 if DEBUG:
                     print("Stopped resizing")
+
+    def update_zoom_window(self, p1, p2, draw_halfway_line=False):
+        x1, y1 = p1
+        x2, y2 = p2
+        image_on_rect = np.copy(self.image[y1:y2, x1:x2])
+        half_width = image_on_rect.shape[1]//2
+        if draw_halfway_line:
+            cv2.line(image_on_rect, pt1=(half_width, 0), pt2=(half_width, y2 - y1), color=halfway_line_color)
+        cv2.imshow("Zoom", image_on_rect)
 
     def keyboard_callback(self, key):
 
@@ -182,7 +196,7 @@ class WindowOperationHandler:
 
         x1, y1 = self.rectangle.x0, self.rectangle.y0
         x2, y2 = x1 + self.rectangle.w, y1 + self.rectangle.h
-        cv2.imshow("Zoom", self.image[y1:y2, x1:x2])
+        self.update_zoom_window(p1=(x1, y1), p2=(x2, y2), draw_halfway_line=halfway_line_visible)
 
 
 def save_label_file(label_file_path, annotations, style_id):
