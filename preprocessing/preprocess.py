@@ -9,14 +9,12 @@ dest_dir = os.path.join(base_dir, "processed")
 
 DEBUG = False
 WHITE = (255, 255, 255)
-GRAY = (125, 125, 125)
+GRAY = (180, 180, 180)
 BLACK = (0, 0, 0)
-INIT_RED = (125, 125, 150)
-BLACK_LINE_THRESHOLD = 200
-BLACK_LINE_WIDTH = 25
+BLACK_LINE_WIDTH = 16
+MORPH_ELEMENT_SHAPE = (1, 10)
 BORDER_WIDTH = 25
 NOISE_REMOVAL_STRENGTH = 7
-RED_CHANNEL = 2
 
 
 def color_k_means(image, mu_init, mask=None):
@@ -29,8 +27,8 @@ def color_k_means(image, mu_init, mask=None):
     mu = np.array(mu_init)
     z = np.zeros_like(image, dtype=np.uint8)
     z_previous = np.ones_like(z)
-
-    while not np.all(z == z_previous):
+    it = 0
+    while not np.all(z == z_previous) and it < 100:
 
         z_previous = np.copy(z)
 
@@ -44,62 +42,44 @@ def color_k_means(image, mu_init, mask=None):
                 mu[i] = mu_init[i]
             else:
                 mu[i] = np.mean(image[z == i])
+        it += 1
 
     if orig_mask is None:
         z = z.reshape(orig_shape[:2])
-    return z
+    return z, mu
 
 
 def process_image(image):
 
     # 2-means clustering to find background
     mu = [GRAY, WHITE]
-    z = color_k_means(image, mu)
+    z, _ = color_k_means(image, mu)
     if DEBUG:
         cv2.imshow("original", image)
     image[z == 1] = BLACK
     if DEBUG:
-        cv2.imshow("clustered", image)
+        cv2.imshow("background-clustered", image)
 
-    # line detection
-    h, w = image.shape[:2]
-    rows_with_lines = []
-    for row in range((h - BLACK_LINE_WIDTH)//2, (h + BLACK_LINE_WIDTH)//2):
-        line_pixel_count = 0
-        consecutive = 0
-        max_consecutive = 0
-        for col in range(w):
-            if np.all(image[row, col] != BLACK):
-                line_pixel_count += 1
-                consecutive += 1
-            else:
-                if consecutive > max_consecutive:
-                    max_consecutive = consecutive
-                consecutive = 0
-        max_consecutive = max(consecutive, max_consecutive)
-        if line_pixel_count > w / 5 and max_consecutive > w / 30:
-            rows_with_lines.append(row)
-
-    if len(rows_with_lines) > 1:
-        for row_with_lines in rows_with_lines:
-            if row_with_lines + 1 not in rows_with_lines and \
-                    row_with_lines - 1 not in rows_with_lines:
-                rows_with_lines.remove(row_with_lines)
+    # gray-scaling
+    image[np.all(image != BLACK, axis=-1)] = WHITE
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     if DEBUG:
-        print(rows_with_lines)
+        cv2.imshow("gray-scaled", image)
 
-    foreground_mean = image[z != 1].mean(axis=0)
-    foreground_std = image[z != 1].std(axis=0)
-    image_normalized = (image - foreground_mean)/foreground_std
-    for row_with_lines in rows_with_lines:
-        for col in range(w):
-            pixel = image[row_with_lines, col]
-            if np.any(pixel != BLACK):
-                pixel_normalized = image_normalized[row_with_lines, col]
-                if pixel_normalized[RED_CHANNEL] < foreground_mean[RED_CHANNEL]:
-                    image[row_with_lines, col] = BLACK
+    # line removal with morphological operations
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, MORPH_ELEMENT_SHAPE)
+    h, w = image.shape
+    image_part_with_line = image[(h - BLACK_LINE_WIDTH)//2:(h + BLACK_LINE_WIDTH)//2, :]
+
+    cv2.erode(src=image_part_with_line, dst=image_part_with_line,
+              kernel=kernel, borderValue=(-1, -1), iterations=1)
     if DEBUG:
-        cv2.imshow("line removed", image)
+        cv2.imshow("post erosion", image)
+
+    cv2.dilate(src=image_part_with_line, dst=image_part_with_line,
+               kernel=kernel, borderValue=(-1, -1), iterations=1)
+    if DEBUG:
+        cv2.imshow("post dilatation", image)
 
     # noise removal
     image = cv2.medianBlur(image, ksize=NOISE_REMOVAL_STRENGTH)
@@ -107,16 +87,12 @@ def process_image(image):
         cv2.imshow("noise removed", image)
 
     # border removal
-    image[:BORDER_WIDTH, :] = BLACK
-    image[-BORDER_WIDTH:, :] = BLACK
-
-    # gray-scaling
-    image[np.all(image != BLACK, axis=-1)] = WHITE
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image[:BORDER_WIDTH, :] = 0
+    image[-BORDER_WIDTH:, :] = 0
     if DEBUG:
-        cv2.imshow("final result", gray_image), cv2.waitKey(0)
+        cv2.imshow("final result", image), cv2.waitKey(0)
 
-    return gray_image
+    return image
 
 
 if __name__ == '__main__':
