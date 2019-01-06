@@ -4,19 +4,14 @@ from numpy.random import randn
 from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam, SGD
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, ToTensor, Pad
-from pycrayon import CrayonClient
+from torchvision.transforms import Compose, ToTensor, Resize
+from tensorboardX import SummaryWriter
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
 from global_vars import NOISE_LENGTH, NUM_CHARS
 from models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
-import datetime
 import time
-
-cc = CrayonClient('localhost')
-cc.remove_all_experiments()
-exp = cc.create_experiment('GAN Training - {}'.format(datetime.datetime.now()))
 
 
 class CGAN:
@@ -57,10 +52,10 @@ class CGAN:
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
         # produced JIT models
-        G_traced = torch.jit.trace(self._G, (torch.randn(128, NOISE_LENGTH).to(device),
-                                             torch.randn(128, NUM_CHARS).to(device)))
-        D_traced = torch.jit.trace(self._D, (torch.randn(128, 1, 64, 64).to(device),
-                                             torch.randn(128, NUM_CHARS).to(device)))
+        G_traced = torch.jit.trace(self._G, (torch.randn(32, NOISE_LENGTH).to(device),
+                                             torch.randn(32, NUM_CHARS).to(device)))
+        D_traced = torch.jit.trace(self._D, (torch.randn(32, 1, 64, 64).to(device),
+                                             torch.randn(32, NUM_CHARS).to(device)))
 
         # Epoch iteration
         for epoch in range(1, n_epochs + 1):
@@ -118,10 +113,10 @@ class CGAN:
                 max_GPU_memory = max(max_GPU_memory, torch.cuda.max_memory_allocated(torch.cuda.current_device())/1e6)
 
                 # Logging
-                exp.add_scalar_value("Loss/Generator", G_loss.item())
-                exp.add_scalar_value("Loss/Discriminator", D_loss.item())
-                exp.add_scalar_value("Discriminator response/to real images (average)", D_real.mean().item())
-                exp.add_scalar_value("Discriminator response/to fake images (average)", D_fake.mean().item())
+                writer.add_scalar("Loss/Generator", G_loss.item())
+                writer.add_scalar("Loss/Discriminator", D_loss.item())
+                writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item())
+                writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item())
                 print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
                       'max GPU memory allocated {:.2f} MB'.format(epoch, batch_count + 1, len(self._dataset_loader),
                                                                   D_loss, G_loss, max_GPU_memory),
@@ -140,18 +135,27 @@ class CGAN:
 
 if __name__ == '__main__':
 
-    # Test cGAN class
+    # set training device
     use_cuda = torch.cuda.is_available()
     if use_cuda:
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
+
+    # set models
     g = ConditionalDCGANGenerator()
     d = ConditionalDCGANDiscriminator()
+
+    # set optimizers
     g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = SGD(d.parameters(), lr=1e-3)  # momentum and nesterov update seem inefficient
-    transform = Compose([Pad(7), ToTensor()])
-    dataset = CharacterDataset('../data/small/processed/', '../data/labels_test.txt', transform)
-    loader = DataLoader(dataset, batch_size=128, shuffle=True)
+    d_adam = SGD(d.parameters(), lr=1e-3, momentum=0.01)  # momentum and nesterov update seem inefficient
+
+    # load dataset
+    transform = Compose([Resize((64, 64)), ToTensor()])
+    dataset = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', transform)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+    # train
+    writer = SummaryWriter()
     gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam, dataset_loader=loader)
     gan.train(10000)

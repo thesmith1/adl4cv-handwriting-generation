@@ -80,8 +80,8 @@ dependencies:
     - pexpect==4.2.1
     - pickleshare==0.7.4
     - prompt-toolkit==1.0.15
+    - protobuf==3.6.1
     - ptyprocess==0.5.2
-    - pycrayon==0.5
     - pygments==2.2.0
     - pyparsing==2.2.0
     - python-dateutil==2.7.0
@@ -95,10 +95,11 @@ dependencies:
     - seaborn==0.8.1
     - simplegeneric==0.8.1
     - sklearn==0.0
+    - tensorboardx==1.6
     - termcolor==1.1.0
     - terminado==0.6
     - testpath==0.3.1
-    - torch==0.4.1
+    - torch==1.0.0
     - tornado==4.5.2
     - traitlets==4.3.2
     - urllib3==1.24.1

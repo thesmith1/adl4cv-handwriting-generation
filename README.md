@@ -7,9 +7,12 @@ To create a new virtual environment with the required dependencies:
 
 ```conda env create -f adl4cv-env.yml```
 
-To run the Crayon logging server:
+To log into Tensorboard and check the training procedure live, an environment with Tensorflow (and Tensorboard)
+is required. From that environment:
 
-```sudo docker run -d -p 8888:8888 -p 8889:8889 alband/crayon```
+```tensorboard --logdir model/runs```
+
+
 ## File Structure
 The folder `model/` contains the GAN classes and the models of all discriminators and generators.
 
