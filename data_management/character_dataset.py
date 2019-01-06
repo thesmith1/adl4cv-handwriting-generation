@@ -26,8 +26,8 @@ class CharacterDataset(Dataset):
         # Load the labels file
         file_content = np.loadtxt(self._labels_file_path, delimiter=' ', dtype=str)
         self._images_names = file_content[:, 0]
-        self._labels = file_content[:, 1]
-        self._styles = file_content[:, 2].astype(int)
+        self._labels = file_content[:, 2]
+        self._styles = file_content[:, 4].astype(int)
         # Load the images
         for img_path in self._images_names:
             try:
