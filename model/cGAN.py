@@ -10,9 +10,13 @@ from tensorboardX import SummaryWriter
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
-from global_vars import NOISE_LENGTH, NUM_CHARS, character_to_index_mapping, save_every, add_character_every
+from global_vars import *
 from models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
 import time
+import datetime
+
+
+current_datetime = datetime.datetime.now()
 
 
 class CGAN:
@@ -56,7 +60,7 @@ class CGAN:
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
         # prepare fixed points in latent space
-        letters_to_watch = "abcde"
+        letters_to_watch = character_to_index_mapping.keys()
         fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(self._device)
         fixed_conditioning_inputs = concatenate([(character_to_one_hot(letter)) for letter in letters_to_watch])
         fixed_conditioning_inputs = torch.from_numpy(fixed_conditioning_inputs).to(self._device)
@@ -64,7 +68,7 @@ class CGAN:
         # produced JIT models
         G_traced = torch.jit.trace(self._G, (torch.randn(32, NOISE_LENGTH).to(self._device),
                                              torch.randn(32, NUM_CHARS).to(self._device)))
-        D_traced = torch.jit.trace(self._D, (torch.randn(32, 1, 64, 64).to(self._device),
+        D_traced = torch.jit.trace(self._D, (torch.randn(32, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
                                              torch.randn(32, NUM_CHARS).to(self._device)))
 
         # Epoch iteration
@@ -142,8 +146,8 @@ class CGAN:
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
 
             if epoch % save_every == 0:
-                torch.save(self._G, "../data/models/gen.pth")
-                torch.save(self._D, "../data/models/dis.pth")
+                torch.save(self._G, "../data/models/G_{}.pth".format(current_datetime))
+                torch.save(self._D, "../data/models/D_{}.pth".format(current_datetime))
 
             # re-compute fixed point images
             self._G.eval()
@@ -168,10 +172,10 @@ if __name__ == '__main__':
 
     # set optimizers
     g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = SGD(d.parameters(), lr=1e-3, momentum=0.01)  # nesterov update seems inefficient
+    d_adam = Adam(d.parameters(), lr=1e-4)
 
     # load dataset
-    transform = Compose([Resize((64, 64)), ToTensor()])
+    transform = Compose([Resize((IMAGE_HEIGHT, IMAGE_WIDTH)), ToTensor()])
     char_ds = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', transform)
     loader = DataLoader(char_ds, batch_size=32, shuffle=True)
 

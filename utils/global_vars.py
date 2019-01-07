@@ -3,8 +3,8 @@ save_every = 100
 add_character_every = 200
 
 # network
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
+IMAGE_WIDTH = 48
+IMAGE_HEIGHT = 48
 NOISE_LENGTH = 100
 NUM_CHARS = 70
 character_to_index_mapping = {
@@ -77,6 +77,5 @@ character_to_index_mapping = {
     ';': 66,
     ':': 67,
     '-': 68,
-    ' ': 69,
-    '\'': 70
+    ' ': 69
 }
