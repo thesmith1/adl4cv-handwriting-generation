@@ -56,7 +56,7 @@ class CGAN:
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
         # prepare fixed points in latent space
-        letters_to_watch = "Paul"
+        letters_to_watch = "abcde"
         fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(self._device)
         fixed_conditioning_inputs = concatenate([(character_to_one_hot(letter)) for letter in letters_to_watch])
         fixed_conditioning_inputs = torch.from_numpy(fixed_conditioning_inputs).to(self._device)
