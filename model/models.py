@@ -104,13 +104,13 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
             nn.LeakyReLU()
         )
         self._conv2 = nn.Sequential(
-            nn.Conv2d(1 + NUM_CHARS * 2, 64 + NUM_CHARS, 5, 2, 2),
-            nn.BatchNorm2d(64 + NUM_CHARS),
+            nn.Conv2d(1 + NUM_CHARS * 2, IMAGE_WIDTH + NUM_CHARS, 5, 2, 2),
+            nn.BatchNorm2d(IMAGE_WIDTH + NUM_CHARS),
             nn.LeakyReLU()
         )
-        self._flatten = Reshape((-1, 16 * 16 * (64 + NUM_CHARS)))
+        self._flatten = Reshape((-1, (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS)))
         self._linear1 = nn.Sequential(
-            nn.Linear(16 * 16 * (64 + NUM_CHARS) + NUM_CHARS, 1024),
+            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS) + NUM_CHARS, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
@@ -161,18 +161,18 @@ class ConditionalDCGANGenerator(ConditionalGenerator):
             nn.ReLU(True)
         )
         self._linear2 = nn.Sequential(
-            nn.Linear(1024 + NUM_CHARS, 64 * 2 * 16 * 16),
-            nn.BatchNorm1d(64 * 2 * 16 * 16),
+            nn.Linear(1024 + NUM_CHARS, IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
+            nn.BatchNorm1d(IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
             nn.ReLU(True)
         )
-        self._reshape_input = Reshape((-1, 64 * 2, 16, 16))
+        self._reshape_input = Reshape((-1, IMAGE_WIDTH * 2, IMAGE_WIDTH // 4, IMAGE_WIDTH // 4))
         self._conv1 = nn.Sequential(
-            nn.ConvTranspose2d(64 * 2 + NUM_CHARS, 64, 5, 2, 2, 1),
-            nn.BatchNorm2d(64),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 2 + NUM_CHARS, IMAGE_WIDTH, 5, 2, 2, 1),
+            nn.BatchNorm2d(IMAGE_WIDTH),
             nn.ReLU(True)
         )
         self._conv2 = nn.Sequential(
-            nn.ConvTranspose2d(64 + NUM_CHARS, 1, 5, 2, 2, 1),
+            nn.ConvTranspose2d(IMAGE_WIDTH + NUM_CHARS, 1, 5, 2, 2, 1),
             nn.Sigmoid()
         )
 
