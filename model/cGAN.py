@@ -159,13 +159,11 @@ if __name__ == '__main__':
 
     # load dataset
     transform = Compose([Resize((64, 64)), ToTensor()])
-    dataset = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', transform)
+    dataset = CharacterDataset('../data/big/processed/', '../data/labels/out_labels.txt', transform)
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
     # train
     writer = SummaryWriter()
-    transform = Compose([Resize((64, 64)), ToTensor()])
-    dataset = CharacterDataset('../data/big/processed/', '../data/labels/out_labels.txt', transform)
     gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam, dataset_loader=loader, dataset=dataset,
                device=device)
     gan.train(10000)
