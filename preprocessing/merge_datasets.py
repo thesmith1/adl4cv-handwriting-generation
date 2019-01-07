@@ -15,4 +15,5 @@ if __name__ == '__main__':
         for new_line in new_lines:
             f.write(new_line)
 
-    for filename in os.listdir(src_folder):       os.rename(os.path.join(src_folder, filename), os.path.join(src_folder, "_" + filename))
+    for filename in os.listdir(src_folder):
+        os.rename(os.path.join(src_folder, filename), os.path.join(src_folder, "_" + filename))
