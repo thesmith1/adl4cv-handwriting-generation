@@ -1,6 +1,7 @@
 import torch
 from matplotlib.pyplot import imshow, show, figure
 from numpy.random import randn
+from numpy import concatenate
 from torch.nn.modules.loss import _Loss, BCELoss
 from torch.optim import Optimizer, Adam, SGD
 from torch.utils.data import DataLoader
@@ -53,6 +54,12 @@ class CGAN:
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
+
+        # prepare fixed points in latent space
+        letters_to_watch = "Paul"
+        fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(device)
+        fixed_conditioning_inputs = concatenate([(character_to_one_hot(letter)) for letter in letters_to_watch])
+        fixed_conditioning_inputs = torch.from_numpy(fixed_conditioning_inputs).to(device)
 
         # produced JIT models
         G_traced = torch.jit.trace(self._G, (torch.randn(32, NOISE_LENGTH).to(device),
@@ -118,11 +125,12 @@ class CGAN:
                 # Store max allocated GPU memory
                 max_GPU_memory = max(max_GPU_memory, torch.cuda.max_memory_allocated(torch.cuda.current_device())/1e6)
 
-                # Logging
-                writer.add_scalar("Loss/Generator", G_loss.item())
-                writer.add_scalar("Loss/Discriminator", D_loss.item())
-                writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item())
-                writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item())
+                # Logging batch-wise
+                step = (epoch - 1)*len(self._dataset_loader) + batch_count
+                writer.add_scalar("Loss/Generator", G_loss.item(), step)
+                writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
+                writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
+                writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
                 print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
                       'max GPU memory allocated {:.2f} MB'.format(epoch, batch_count + 1, len(self._dataset_loader),
                                                                   D_loss, G_loss, max_GPU_memory),
@@ -130,13 +138,20 @@ class CGAN:
 
             end_time = time.time()
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
-            if epoch % 25 == 0:
-                letter_to_generate = list(character_to_index_mapping.keys())[current_character_index - 1]
-                self.generate(letter_to_generate, True)
 
             if epoch % 100 == 0:
                 torch.save(self._G, "../data/models/gen.pth")
                 torch.save(self._D, "../data/models/dis.pth")
+
+            # re-compute fixed point images
+            self._G.eval()
+            images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
+            for image, letter in zip(images, letters_to_watch):
+                writer.add_image("Fixed latent points/" + letter, image, global_step=epoch)
+
+            if epoch % 10 == 0:
+                torch.save(g, "../data/models/gen.pth")
+                torch.save(d, "../data/models/dis.pth")
 
 
 if __name__ == '__main__':
@@ -155,11 +170,11 @@ if __name__ == '__main__':
 
     # set optimizers
     g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = Adam(d.parameters(), lr=1e-4)
+    d_adam = SGD(d.parameters(), lr=1e-3, momentum=0.01)  # momentum and nesterov update seem inefficient
 
     # load dataset
     transform = Compose([Resize((64, 64)), ToTensor()])
-    dataset = CharacterDataset('../data/big/processed/', '../data/labels/out_labels.txt', transform)
+    dataset = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', transform)
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
     # train
