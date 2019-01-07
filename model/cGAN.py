@@ -50,7 +50,7 @@ class CGAN:
         return output
 
     def train(self, n_epochs: int):
-        current_char_index = 27  # 0 is already present
+        current_char_index = character_to_index_mapping['b']  # 'a' is already present
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
     # set optimizers
     g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = SGD(d.parameters(), lr=1e-3, momentum=0.01)  # nesterov update seem inefficient
+    d_adam = SGD(d.parameters(), lr=1e-3, momentum=0.01)  # nesterov update seems inefficient
 
     # load dataset
     transform = Compose([Resize((64, 64)), ToTensor()])

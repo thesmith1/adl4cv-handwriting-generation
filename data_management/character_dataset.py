@@ -1,6 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import Compose, ToTensor
+from torchvision.transforms import Compose, ToTensor, Resize
 from PIL.Image import open
 
 
@@ -30,7 +30,7 @@ class CharacterDataset(Dataset):
         # Load the labels file
         file_content = np.loadtxt(self._labels_file_path, delimiter=' ', dtype=str)
         self._images_names = file_content[:, 0]
-        self._labels = file_content[:, 2]  # TODO: only consider current character
+        self._labels = file_content[:, 2]  # TODO: consider prev/next characters
         self._styles = file_content[:, 4].astype(int)
         # Load the images
         for img_path in self._images_names:
@@ -54,7 +54,7 @@ class CharacterDataset(Dataset):
 
 
 if __name__ == '__main__':
-    d = CharacterDataset('../data/big/processed/', '../data/labels/out_labels.txt', Compose([ToTensor()]))
+    d = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', Compose([Resize((64, 64)), ToTensor()]))
     loader = DataLoader(d, batch_size=3, shuffle=True)
     for epoch in range(100):
         for batch in loader:
