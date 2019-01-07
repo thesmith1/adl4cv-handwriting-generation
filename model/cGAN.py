@@ -54,7 +54,7 @@ class CGAN:
         return output
 
     def train(self, n_epochs: int):
-        current_char_index = character_to_index_mapping['b']  # 'a' is already present
+        current_char_index = character_to_index_mapping['B']  # 'A' is already present
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
@@ -65,11 +65,12 @@ class CGAN:
         fixed_conditioning_inputs = concatenate([(character_to_one_hot(letter)) for letter in letters_to_watch])
         fixed_conditioning_inputs = torch.from_numpy(fixed_conditioning_inputs).to(self._device)
 
-        # produced JIT models
-        G_traced = torch.jit.trace(self._G, (torch.randn(32, NOISE_LENGTH).to(self._device),
-                                             torch.randn(32, NUM_CHARS).to(self._device)))
-        D_traced = torch.jit.trace(self._D, (torch.randn(32, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
-                                             torch.randn(32, NUM_CHARS).to(self._device)))
+        # produced JIT model
+        bs = self._dataset_loader.batch_size
+        G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
+                                             torch.randn(bs, NUM_CHARS).to(self._device)))
+        D_traced = torch.jit.trace(self._D, (torch.randn(bs, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
+                                             torch.randn(bs, NUM_CHARS).to(self._device)))
 
         # Epoch iteration
         for epoch in range(1, n_epochs + 1):

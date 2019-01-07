@@ -15,7 +15,7 @@ class CharacterDataset(Dataset):
         self._labels_file_path = labels_file_path
         self._transform = transform
         self.load_labels()
-        self.add_character_to_training('a')
+        self.add_character_to_training('A')
         assert len(self._images) == len(self._labels) == len(self._styles)
 
     def __getitem__(self, index):
