@@ -10,23 +10,27 @@ class CharacterDataset(Dataset):
         self._labels = []
         self._styles = []
         self._images_names = []
+        self._training_images = []  # images that are already used during training (one character at a time training)
         self._img_folder_path = img_folder_path
         self._labels_file_path = labels_file_path
         self._transform = transform
         self.load_labels()
+        self.add_character_to_training('a')
         assert len(self._images) == len(self._labels) == len(self._styles)
 
     def __getitem__(self, index):
-        return self._images[index], self._labels[index], self._styles[index]
+        # return self._images[index], self._labels[index], self._styles[index]  # TODO: to be deleted
+        img, lab, stl = self._training_images[index]
+        return img, lab, stl
 
     def __len__(self):
-        return len(self._labels)
+        return len(self._training_images)
 
     def load_labels(self):
         # Load the labels file
         file_content = np.loadtxt(self._labels_file_path, delimiter=' ', dtype=str)
         self._images_names = file_content[:, 0]
-        self._labels = file_content[:, 2]
+        self._labels = file_content[:, 2]  # TODO: only consider current character
         self._styles = file_content[:, 4].astype(int)
         # Load the images
         for img_path in self._images_names:
@@ -41,9 +45,16 @@ class CharacterDataset(Dataset):
             if lab == '_':
                 self._labels[idx] = ' '
 
+    def add_character_to_training(self, char: str):
+        new_images = []
+        for idx, lab in enumerate(self._labels):
+            if lab == char:
+                new_images.append((self._images[idx], lab, self._styles[idx]))
+        self._training_images.extend(new_images)
+
 
 if __name__ == '__main__':
-    d = CharacterDataset('../data/img/', '../data/labels_test.txt', Compose([ToTensor()]))
+    d = CharacterDataset('../data/big/processed/', '../data/labels/out_labels.txt', Compose([ToTensor()]))
     loader = DataLoader(d, batch_size=3, shuffle=True)
     for epoch in range(100):
         for batch in loader:

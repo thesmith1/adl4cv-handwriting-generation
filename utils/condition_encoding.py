@@ -25,3 +25,4 @@ def character_to_one_hot(char):
 
 if __name__ == '__main__':
     print(character_to_one_hot(('a', ',', ' ')))
+    print(list(character_to_index_mapping.keys())[0])
