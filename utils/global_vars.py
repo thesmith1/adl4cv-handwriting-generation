@@ -1,3 +1,8 @@
+# training
+save_every = 100
+add_character_every = 200
+
+# network
 IMAGE_WIDTH = 64
 IMAGE_HEIGHT = 64
 NOISE_LENGTH = 100
