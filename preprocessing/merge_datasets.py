@@ -1,7 +1,7 @@
 import os
 
-src_label_file = "/home/paulstpr/Desktop/out_labels.txt"
-src_folder = "/home/paulstpr/Desktop/processed/"
+src_label_file = "/media/giorgio/DATA/TUM/Advanced Deep Learning for Computer Vision/Project/adl4cv-handwriting-generation/data/labels/out_labels_orig.txt"
+src_folder = "/media/giorgio/DATA/TUM/Advanced Deep Learning for Computer Vision/Project/adl4cv-handwriting-generation/data/big/raw/"
 
 if __name__ == '__main__':
 

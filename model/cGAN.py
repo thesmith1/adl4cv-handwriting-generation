@@ -1,22 +1,18 @@
+import datetime
+import time
+
 import torch
 from matplotlib.pyplot import imshow, show, figure
 from numpy.random import randn
-from numpy import concatenate
-from torch.nn.modules.loss import _Loss, BCELoss
-from torch.optim import Optimizer, Adam, SGD
-from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, ToTensor, Resize
 from tensorboardX import SummaryWriter
+from torch.nn.modules.loss import _Loss
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
 from global_vars import *
-from models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
-import time
-import datetime
-
-
-current_datetime = datetime.datetime.now()
 
 
 class CGAN:
@@ -25,7 +21,9 @@ class CGAN:
                  G_optim: Optimizer, D_optim: Optimizer,
                  dataset_loader: DataLoader,
                  dataset: CharacterDataset,
-                 device: torch.device):
+                 device: torch.device,
+                 writer: SummaryWriter,
+                 current_datetime: str = None):
         self._G = G
         self._D = D
         self._G_optim = G_optim
@@ -37,12 +35,17 @@ class CGAN:
         self._dataset = dataset
         self._G.to(device=self._device)
         self._D.to(device=self._device)
+        self._writer = writer
+        if current_datetime:
+            self._current_datetime = current_datetime
+        else:
+            self._current_datetime = datetime.datetime.now()
 
     def generate(self, character: str, do_print: bool = False):
         self._G.eval()
         assert len(character) == 1
         c = character_to_one_hot(character)
-        c = torch.from_numpy(c).to(device=dev)
+        c = torch.from_numpy(c).to(device=self._device)
         z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
         output = self._G(z, c)
         if do_print:
@@ -136,10 +139,10 @@ class CGAN:
                 step += 1
                 last_char_added = next((char for char, index in character_to_index_mapping.items()
                                         if index == current_char_index - 1), None)
-                writer.add_scalar("Loss/Generator", G_loss.item(), step)
-                writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
-                writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
-                writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
+                self._writer.add_scalar("Loss/Generator", G_loss.item(), step)
+                self._writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
+                self._writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
+                self._writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
                 print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
                       'max GPU memory allocated {:.2f} MB, last char added: {}'.format(epoch, batch_count + 1,
                                                                                        len(self._dataset_loader),
@@ -150,41 +153,12 @@ class CGAN:
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
 
             if epoch % save_every == 0:
-                torch.save(self._G, "../data/models/G_{}.pth".format(current_datetime))
-                torch.save(self._D, "../data/models/D_{}.pth".format(current_datetime))
+                torch.save(self._G, "./data/models/G_{}.pth".format(self._current_datetime))
+                torch.save(self._D, "./data/models/D_{}.pth".format(self._current_datetime))
 
             # re-compute fixed point images
-            self._G.eval()
-            images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
-            for image, letter in zip(images, letters_to_watch):
-                writer.add_image("Fixed latent points/" + letter, image, global_step=epoch)
-
-
-if __name__ == '__main__':
-    # Test cGAN class
-
-    # set training device
-    use_cuda = torch.cuda.is_available()
-    if use_cuda:
-        dev = torch.device('cuda')
-    else:
-        dev = torch.device('cpu')
-
-    # set models
-    g = ConditionalDCGANGenerator()
-    d = ConditionalDCGANDiscriminator()
-
-    # set optimizers
-    g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = Adam(d.parameters(), lr=1e-4)
-
-    # load dataset
-    transform = Compose([Resize((IMAGE_HEIGHT, IMAGE_WIDTH)), ToTensor()])
-    char_ds = CharacterDataset('../data/big/processed/', '../data/big/labels.txt', transform)
-    loader = DataLoader(char_ds, batch_size=32, shuffle=True)
-
-    # train
-    writer = SummaryWriter()
-    gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam,
-               dataset_loader=loader, dataset=char_ds, device=dev)
-    gan.train(10000)
+            if epoch % produce_every == 0:
+                self._G.eval()
+                images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
+                for image, letter in zip(images, letters_to_watch):
+                    self._writer.add_image("Fixed latent points/" + letter, image, global_step=epoch)
