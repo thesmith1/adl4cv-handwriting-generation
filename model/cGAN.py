@@ -4,10 +4,12 @@ import time
 import torch
 from matplotlib.pyplot import imshow, show, figure
 from numpy.random import randn
+from numpy import concatenate
 from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torchvision.transforms import Resize, Compose, ToPILImage, ToTensor
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
@@ -61,18 +63,20 @@ class CGAN:
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
+        produce_transform = Compose([ToPILImage(), Resize((100, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
         letters_to_watch = list(character_to_index_mapping.keys())
         fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(self._device)
-        fixed_conditioning_inputs = torch.from_numpy(character_to_one_hot(letters_to_watch)).to(self._device)
+        fixed_conditioning_inputs = torch.from_numpy(character_to_one_hot(letters_to_watch))
+        fixed_conditioning_inputs = torch.cat([fixed_conditioning_inputs, torch.ones((len(letters_to_watch), 1), dtype=torch.double)], dim=1).to(self._device)
 
         # produced JIT models
         bs = self._dataset_loader.batch_size
         G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS).to(self._device)))
+                                             torch.randn(bs, NUM_CHARS + 1).to(self._device)))
         D_traced = torch.jit.trace(self._D, (torch.randn(bs, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS).to(self._device)))
+                                             torch.randn(bs, NUM_CHARS + 1).to(self._device)))
 
         # Epoch iteration
         step = 0
@@ -87,7 +91,7 @@ class CGAN:
 
             # Iterate over the dataset
             start_time = time.time()
-            for batch_count, (X, c, style) in enumerate(self._dataset_loader):  # TODO: use style
+            for batch_count, (X, c, style) in enumerate(self._dataset_loader):
 
                 # Reset gradient
                 self._D_optim.zero_grad()
@@ -96,6 +100,7 @@ class CGAN:
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device=self._device)
                 X = X.to(device=self._device)
                 c = character_to_one_hot(c)
+                c = concatenate([c, style.unsqueeze(-1)], axis=1)
                 c = torch.from_numpy(c).to(device=self._device)
 
                 # Discriminator forward-loss-backward-update
@@ -161,4 +166,5 @@ class CGAN:
                 self._G.eval()
                 images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images, letters_to_watch):
+                    image = produce_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter, image, global_step=epoch)
