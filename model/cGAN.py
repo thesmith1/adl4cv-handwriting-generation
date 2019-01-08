@@ -60,12 +60,11 @@ class CGAN:
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
         # prepare fixed points in latent space
-        letters_to_watch = character_to_index_mapping.keys()
+        letters_to_watch = list(character_to_index_mapping.keys())
         fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(self._device)
-        fixed_conditioning_inputs = concatenate([(character_to_one_hot(letter)) for letter in letters_to_watch])
-        fixed_conditioning_inputs = torch.from_numpy(fixed_conditioning_inputs).to(self._device)
+        fixed_conditioning_inputs = torch.from_numpy(character_to_one_hot(letters_to_watch)).to(self._device)
 
-        # produced JIT model
+        # produced JIT models
         bs = self._dataset_loader.batch_size
         G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
                                              torch.randn(bs, NUM_CHARS).to(self._device)))
@@ -73,6 +72,7 @@ class CGAN:
                                              torch.randn(bs, NUM_CHARS).to(self._device)))
 
         # Epoch iteration
+        step = 0
         for epoch in range(1, n_epochs + 1):
 
             if epoch % add_character_every == 0 and current_char_index < NUM_CHARS:
@@ -133,15 +133,18 @@ class CGAN:
                 max_GPU_memory = max(max_GPU_memory, torch.cuda.max_memory_allocated(torch.cuda.current_device())/1e6)
 
                 # Logging batch-wise
-                step = (epoch - 1)*len(self._dataset_loader) + batch_count
+                step += 1
+                last_char_added = next((char for char, index in character_to_index_mapping.items()
+                                        if index == current_char_index - 1), None)
                 writer.add_scalar("Loss/Generator", G_loss.item(), step)
                 writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
                 writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
                 writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
                 print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
-                      'max GPU memory allocated {:.2f} MB'.format(epoch, batch_count + 1, len(self._dataset_loader),
-                                                                  D_loss, G_loss, max_GPU_memory),
-                      end='\r')
+                      'max GPU memory allocated {:.2f} MB, last char added: {}'.format(epoch, batch_count + 1,
+                                                                                       len(self._dataset_loader),
+                                                                                       D_loss, G_loss, max_GPU_memory,
+                                                                                       last_char_added), end='\r')
 
             end_time = time.time()
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
