@@ -66,10 +66,13 @@ class CGAN:
         produce_transform = Compose([ToPILImage(), Resize((100, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
-        letters_to_watch = list(character_to_index_mapping.keys())
-        fixed_latent_points = torch.from_numpy(randn(len(letters_to_watch), NOISE_LENGTH)).to(self._device)
-        fixed_conditioning_inputs = torch.from_numpy(character_to_one_hot(letters_to_watch))
-        fixed_conditioning_inputs = torch.cat([fixed_conditioning_inputs, torch.ones((len(letters_to_watch), 1), dtype=torch.double)], dim=1).to(self._device)
+        letters_to_watch = list('ABCDEFabcdef0')
+        fixed_latent_points = torch.from_numpy(randn(2 * len(letters_to_watch), NOISE_LENGTH)).to(self._device)
+        character_condition = torch.from_numpy(character_to_one_hot(2 * letters_to_watch))
+        style_P = torch.zeros((len(letters_to_watch), 1), dtype=torch.double)
+        style_G = torch.ones((len(letters_to_watch), 1), dtype=torch.double)
+        styles = torch.cat([style_P, style_G], dim=0)
+        fixed_conditioning_inputs = torch.cat([character_condition, styles], dim=1).to(self._device)
 
         # produced JIT models
         bs = self._dataset_loader.batch_size
@@ -165,6 +168,9 @@ class CGAN:
             if epoch % produce_every == 0:
                 self._G.eval()
                 images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
-                for image, letter in zip(images, letters_to_watch):
+                for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
                     image = produce_transform(image.cpu().detach())
-                    self._writer.add_image("Fixed latent points/" + letter, image, global_step=epoch)
+                    self._writer.add_image("Fixed latent points/" + letter + "_P", image, global_step=epoch)
+                for image, letter in zip(images[NUM_CHARS:], letters_to_watch):
+                    image = produce_transform(image.cpu().detach())
+                    self._writer.add_image("Fixed latent points/" + letter + "_G", image, global_step=epoch)

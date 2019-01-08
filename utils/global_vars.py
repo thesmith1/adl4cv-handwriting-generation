@@ -1,7 +1,7 @@
 # training
 save_every = 100
 add_character_every = 200
-produce_every = 10
+produce_every = 50
 
 # network
 IMAGE_WIDTH = 48
