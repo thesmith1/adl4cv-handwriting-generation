@@ -2,25 +2,15 @@ import numpy as np
 from global_vars import character_to_index_mapping, NUM_CHARS
 
 
-def character_to_index(char):
-    ret = []
-    if isinstance(char, tuple):
-        for el in char:
-            ret.append(character_to_index_mapping[el])
-    else:
-        ret.append(character_to_index_mapping[char])
-    return ret
+def index_to_one_hot(index):
+    return np.eye(NUM_CHARS)[index]
 
 
-def index_to_one_hot(idx):
-    ret = np.zeros((len(idx), NUM_CHARS))
-    for i, el in enumerate(idx):
-        ret[i, el] = 1
-    return ret
-
-
-def character_to_one_hot(char):
-    return index_to_one_hot(character_to_index(char))
+def character_to_one_hot(chars):
+    if not isinstance(chars, tuple) and not isinstance(chars, list):
+        chars = (chars,)
+    return np.stack([index_to_one_hot(character_to_index_mapping[char])
+                     if char != " " else np.zeros((NUM_CHARS,)) for char in chars])
 
 
 if __name__ == '__main__':

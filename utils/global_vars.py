@@ -6,7 +6,6 @@ add_character_every = 200
 IMAGE_WIDTH = 48
 IMAGE_HEIGHT = 48
 NOISE_LENGTH = 100
-NUM_CHARS = 70
 character_to_index_mapping = {
     'A': 0,
     'B': 1,
@@ -77,5 +76,7 @@ character_to_index_mapping = {
     ';': 66,
     ':': 67,
     '-': 68,
-    ' ': 69
+    '\'': 69
 }
+
+NUM_CHARS = len(character_to_index_mapping)
