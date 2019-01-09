@@ -29,9 +29,12 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(prog="python train.py", description="Train GAN for handwriting generation")
     p.add_argument('-m', '--model', help="Allows to start the training from an existing model",
                    type=str, default=None)
+    p.add_argument('-a', '--add', help="Allows to specify the last letter added in the dataset on the previous train",
+                   type=str, default=None)
     args = p.parse_args()
 
     current_datetime = str(datetime.now())
+    next_letter_to_add = 'B'
 
     # Set device
     use_cuda = torch.cuda.is_available()
@@ -76,10 +79,22 @@ if __name__ == '__main__':
     char_ds = CharacterDataset(dataset_path, labels_file, transform)
     loader = DataLoader(char_ds, batch_size=32, shuffle=True)
 
+    # Restore the content of the dataset if the training is not new
+    if args.add:
+        next_letter_to_add = args.add
+        last_char_added_index = character_to_index_mapping[args.add]
+        for curr_char in character_to_index_mapping.keys():
+            if curr_char == 'A':  # the A is already present
+                pass
+            if curr_char == next_letter_to_add:
+                break
+            else:
+                char_ds.add_character_to_training(curr_char)
+
     # Train
     writer = SummaryWriter(log_dir=join(logs_path, current_datetime))
     gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam,
                dataset_loader=loader, dataset=char_ds, device=dev,
                writer=writer, current_datetime=current_datetime)
-    gan.train(20000)
+    gan.train(20000, next_letter_to_add)
 

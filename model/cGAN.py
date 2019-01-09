@@ -65,8 +65,8 @@ class CGAN:
         self._G.train()
         return output
 
-    def train(self, n_epochs: int):
-        current_char_index = character_to_index_mapping['B']  # 'A' is already present
+    def train(self, n_epochs: int, next_letter_to_add: str):
+        current_char_index = character_to_index_mapping[next_letter_to_add]  # 'A' is already present
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
