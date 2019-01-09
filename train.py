@@ -16,7 +16,7 @@ lib_path = os.path.abspath(os.path.join(__file__, '.'))
 sys.path.append(lib_path)
 
 from data_management.character_dataset import CharacterDataset
-from global_vars import *
+from utils.global_vars import *
 from model.models import ConditionalDCGANDiscriminator, ConditionalDCGANGenerator
 from model.cGAN import CGAN
 

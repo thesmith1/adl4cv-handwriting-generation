@@ -11,7 +11,7 @@ ext_lib_path = os.path.abspath(os.path.join(__file__, '../utils'))
 sys.path.append(ext_lib_path)
 
 from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
-from global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
+from utils.global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
 
 
 class Reshape(nn.Module):
