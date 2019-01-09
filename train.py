@@ -26,6 +26,8 @@ models_path = './data/models/'
 logs_path = './model/runs/'
 
 if __name__ == '__main__':
+
+    # initial set up
     p = argparse.ArgumentParser(prog="python train.py", description="Train GAN for handwriting generation")
     p.add_argument('-m', '--model', help="Allows to start the training from an existing model",
                    type=str, default=None)
@@ -34,6 +36,7 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     current_datetime = str(datetime.now())
+    writer = SummaryWriter(log_dir=join(logs_path, current_datetime))
     next_letter_to_add = 'B'
 
     # Set device
@@ -45,6 +48,7 @@ if __name__ == '__main__':
 
     # Init models
     if args.model:
+        print("Loading models...")
         d_models = [f for f in listdir(models_path) if
                     isfile(join(models_path, f)) and f.endswith('.pth') and f[0] == 'D']
         g_models = [f for f in listdir(models_path) if
@@ -75,6 +79,7 @@ if __name__ == '__main__':
     d_adam = Adam(d.parameters(), lr=1e-4)
 
     # Load the dataset
+    print("Loading dataset...")
     transform = Compose([Resize((IMAGE_HEIGHT, IMAGE_WIDTH)), ToTensor()])
     char_ds = CharacterDataset(dataset_path, labels_file, transform)
     loader = DataLoader(char_ds, batch_size=32, shuffle=True)
@@ -92,7 +97,7 @@ if __name__ == '__main__':
                 char_ds.add_character_to_training(curr_char)
 
     # Train
-    writer = SummaryWriter(log_dir=join(logs_path, current_datetime))
+    print("Initiating GAN...")
     gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam,
                dataset_loader=loader, dataset=char_ds, device=dev,
                writer=writer, current_datetime=current_datetime)
