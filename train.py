@@ -1,4 +1,6 @@
 import argparse
+import os
+import sys
 from os import listdir
 from os.path import isfile, join
 from datetime import datetime
@@ -9,6 +11,9 @@ from torch.nn.modules.loss import BCELoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, ToTensor, Resize
+
+lib_path = os.path.abspath(os.path.join(__file__, '.'))
+sys.path.append(lib_path)
 
 from data_management.character_dataset import CharacterDataset
 from global_vars import *

@@ -1,5 +1,7 @@
 import datetime
 import time
+import os
+import sys
 
 import torch
 from matplotlib.pyplot import imshow, show, figure
@@ -10,6 +12,11 @@ from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchvision.transforms import Resize, Compose, ToPILImage, ToTensor
+
+lib_path = os.path.abspath(os.path.join(__file__, '../..'))
+sys.path.append(lib_path)
+ext_lib_path = os.path.abspath(os.path.join(__file__, '../../utils'))
+sys.path.append(ext_lib_path)
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot

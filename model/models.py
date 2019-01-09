@@ -1,6 +1,14 @@
+import os
+import sys
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+
+lib_path = os.path.abspath(os.path.join(__file__, '..'))
+sys.path.append(lib_path)
+ext_lib_path = os.path.abspath(os.path.join(__file__, '../utils'))
+sys.path.append(ext_lib_path)
 
 from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 from global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
