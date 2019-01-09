@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from utils.global_vars import IMAGE_WIDTH, IMAGE_HEIGHT
+from utils.global_vars import IMAGE_WIDTH, IMAGE_HEIGHT, INF_REMOVE_WIDTH, SUP_REMOVE_WIDTH
 from utils.image_utils import is_image
 
 base_dir = "../data/big/"
@@ -14,8 +14,7 @@ GRAY = (180, 180, 180)
 BLACK = (0, 0, 0)
 BLACK_LINE_WIDTH = 20  # Prev 16
 MORPH_ELEMENT_SHAPE = (1, 10)
-SUP_REMOVE_WIDTH = 25
-INF_REMOVE_WIDTH = 105
+
 NOISE_REMOVAL_STRENGTH = 7
 
 

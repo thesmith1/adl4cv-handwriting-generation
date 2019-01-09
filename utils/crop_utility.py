@@ -3,6 +3,7 @@ import numpy as np
 import os
 from sys import exit
 import argparse
+from global_vars import rectangle_shape
 
 FATAL = -1
 DEBUG = False
@@ -12,7 +13,6 @@ win_name = "Crop image"
 main_window_mode = cv2.WINDOW_KEEPRATIO  # cv2.WINDOW_FULLSCREEN
 dest_save_folder = "../data/big/raw"
 
-rectangle_shape = (420, 140)  # first param. must be tuned to match the height of two lines in a college-ruled notebook
 START_X, START_Y = 800, 400
 rectangle_resizable = False
 rectangle_color = (0, 0, 0)

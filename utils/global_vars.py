@@ -1,11 +1,18 @@
+# crop utility
+rectangle_shape = (420, 140)  # first param. must be tuned to match the height of two lines in a college-ruled notebook
+
+# pre-processing
+SUP_REMOVE_WIDTH = 25
+INF_REMOVE_WIDTH = 105
+
 # training
 save_every = 100
 add_character_every = 200
 produce_every = 50
 
 # network
-IMAGE_WIDTH = 48
-IMAGE_HEIGHT = 48
+IMAGE_WIDTH = 32
+IMAGE_HEIGHT = 32
 NOISE_LENGTH = 100
 character_to_index_mapping = {
     'A': 0,
