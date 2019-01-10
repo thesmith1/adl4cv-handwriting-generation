@@ -4,8 +4,8 @@ import os
 import sys
 
 import torch
-from matplotlib.pyplot import imshow, show, figure
-from numpy.random import randn
+from matplotlib.pyplot import show
+from numpy.random import randn, choice
 from numpy import concatenate
 from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import _Loss
@@ -22,6 +22,7 @@ from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
 from global_vars import *
+from image_utils import produce_figure
 
 
 class CGAN:
@@ -50,17 +51,17 @@ class CGAN:
         else:
             self._current_datetime = datetime.datetime.now()
 
-    def generate(self, character: str, do_print: bool = False):
+    def generate(self, character: str, style: int, do_print: bool = False):
         self._G.eval()
         assert len(character) == 1
+        assert style in (0, 1)
         c = character_to_one_hot(character)
         c = torch.from_numpy(c).to(device=self._device)
+        c = torch.cat([c, style*torch.ones((1, 1), dtype=torch.double).to(self._device)], dim=1)
         z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
-        output = self._G(z, c)
+        output = self._G(z, c).cpu().detach().squeeze()
         if do_print:
-            fig = figure()
-            imshow(output[0].cpu().detach().numpy().squeeze(), cmap='Greys_r')
-            fig.text(.5, 0.01, character)
+            produce_figure(output, character)
             show()
         self._G.train()
         return output
@@ -177,9 +178,11 @@ class CGAN:
                 torch.save(self._G, "./data/models/G_{}.pth".format(self._current_datetime))
                 torch.save(self._D, "./data/models/D_{}.pth".format(self._current_datetime))
 
-            # re-compute fixed point images
+            # produce graphical results
             if epoch % produce_every == 0:
                 self._G.eval()
+
+                # re-compute fixed point images
                 images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
                     image = produce_transform(image.cpu().detach())
@@ -187,3 +190,12 @@ class CGAN:
                 for image, letter in zip(images[NUM_CHARS:], letters_to_watch):
                     image = produce_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_G", image, global_step=epoch)
+
+                # generate random character images
+                for i in range(num_characters_to_generate):
+                    char = choice(list(random_characters_to_generate))
+                    style = choice([0, 1])
+                    image = self.generate(char, style, do_print=False)
+                    image = produce_transform(image.unsqueeze(0))
+                    fig = produce_figure(image, "char: %s, style: %s" % (char, style))
+                    self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
