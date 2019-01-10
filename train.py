@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     current_datetime = str(datetime.now())
     writer = SummaryWriter(log_dir=join(logs_path, current_datetime))
-    next_letter_to_add = 'B'
+    next_letter_to_add = 'A'
 
     # Set device
     use_cuda = torch.cuda.is_available()

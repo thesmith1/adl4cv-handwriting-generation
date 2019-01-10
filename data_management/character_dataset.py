@@ -15,11 +15,10 @@ class CharacterDataset(Dataset):
         self._labels_file_path = labels_file_path
         self._transform = transform
         self.load_labels()
-        self.add_character_to_training('A')
+        self.add_character_to_training(' ')
         assert len(self._images) == len(self._labels) == len(self._styles)
 
     def __getitem__(self, index):
-        # return self._images[index], self._labels[index], self._styles[index]  # TODO: to be deleted
         img, lab, stl = self._training_images[index]
         return img, lab, stl
 
