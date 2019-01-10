@@ -14,6 +14,12 @@ from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 from utils.global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
 
 
+def xavier_init(m):
+    if type(m) in [nn.Conv2d, nn.Linear]:
+        nn.init.xavier_normal_(m.weight)
+        m.bias.data.fill_(0.01)
+
+
 class Reshape(nn.Module):
     def __init__(self, shape: tuple):
         super().__init__()
@@ -126,6 +132,7 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
             nn.Linear(1024 + NUM_CHARS + 1, 1),
             nn.Sigmoid()
         )
+        self.apply(xavier_init)
 
     def to(self, *args, **kwargs):
         self._device = kwargs.get('device')
@@ -183,6 +190,7 @@ class ConditionalDCGANGenerator(ConditionalGenerator):
             nn.ConvTranspose2d(IMAGE_WIDTH + NUM_CHARS + 1, 1, 5, 2, 2, 1),
             nn.Sigmoid()
         )
+        self.apply(xavier_init)
 
     def to(self, *args, **kwargs):
         self._device = kwargs.get('device')

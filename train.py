@@ -77,6 +77,7 @@ if __name__ == '__main__':
         d = ConditionalDCGANDiscriminator()
 
     # Init optimizers
+    print('Initializing the optimizers...')
     g_adam = Adam(g.parameters(), lr=1e-4)
     d_adam = Adam(d.parameters(), lr=1e-4)
 

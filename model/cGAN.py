@@ -6,7 +6,7 @@ import sys
 import torch
 from matplotlib.pyplot import show
 from numpy.random import randn, choice
-from numpy import concatenate
+from numpy import concatenate, inf
 from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
@@ -106,37 +106,44 @@ class CGAN:
             # Iterate over the dataset
             start_time = time.time()
             for batch_count, (X, c, style) in enumerate(self._dataset_loader):
+                step += 1
+
+                zero_label = torch.zeros(len(X)).to(device=self._device)
+                one_label = torch.ones(len(X)).to(device=self._device)
+                if use_soft_labels:
+                    zero_label += 0.25 * torch.rand(len(X)).to(self._device)
+                    one_label -= 0.25 * torch.rand(len(X)).to(self._device)
+
+                # Arrange data
+                X = X.to(device=self._device)
+                c = character_to_one_hot(c)
+                c = concatenate([c, style.unsqueeze(-1)], axis=1)
+                c = torch.from_numpy(c).to(device=self._device)
 
                 # Reset gradient
                 self._D_optim.zero_grad()
 
                 # Sample data
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device=self._device)
-                X = X.to(device=self._device)
-                c = character_to_one_hot(c)
-                c = concatenate([c, style.unsqueeze(-1)], axis=1)
-                c = torch.from_numpy(c).to(device=self._device)
 
                 # Discriminator forward-loss-backward-update
-                # G_sample = self._G(z, c)
                 G_sample = G_traced(z, c)
-                # D_real = self._D(X, c)
                 D_real = D_traced(X, c)
-                # D_fake = self._D(G_sample.detach(), c)
                 D_fake = D_traced(G_sample.detach(), c)
-
-                zero_label = torch.zeros(len(X)).to(device=self._device)
-                one_label = torch.ones(len(X)).to(device=self._device)
-                if use_soft_labels:
-                    zero_label += 0.25*torch.rand(len(X)).to(self._device)
-                    one_label -= 0.25*torch.rand(len(X)).to(self._device)
 
                 D_loss_real = self._D_loss(D_real, one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)
                 D_loss = (D_loss_real + D_loss_fake) / 2
 
-                D_loss.backward()
-                self._D_optim.step(None)
+                if D_loss > D_loss_threshold:
+                    D_loss.backward()
+                    self._D_optim.step(None)
+
+                self._writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
+                self._writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(),
+                                        step)
+                self._writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(),
+                                        step)
 
                 # Reset gradient
                 self._G_optim.zero_grad()
@@ -144,27 +151,22 @@ class CGAN:
                 # Generator forward-loss-backward-update
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
 
-                # G_sample = self._G(z, c)
                 G_sample = G_traced(z, c)
-                # D_fake = self._D(G_sample, c)
                 D_fake = D_traced(G_sample, c)
 
                 G_loss = self._G_loss(D_fake, one_label)
 
-                G_loss.backward()
-                self._G_optim.step(None)
+                if G_loss > G_loss_threshold:
+                    G_loss.backward()
+                    self._G_optim.step(None)
+
+                self._writer.add_scalar("Loss/Generator", G_loss.item(), step)
 
                 # Store max allocated GPU memory
                 max_GPU_memory = max(max_GPU_memory, torch.cuda.max_memory_allocated(torch.cuda.current_device())/1e6)
 
-                # Logging batch-wise
-                step += 1
                 last_char_added = next((char for char, index in character_to_index_mapping.items()
                                         if index == current_char_index - 1), None)
-                self._writer.add_scalar("Loss/Generator", G_loss.item(), step)
-                self._writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
-                self._writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
-                self._writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
                 print('Epoch {:4d}, batch {:3d}/{:3d}, D loss {:4f}, G loss {:4f}, '
                       'max GPU memory allocated {:.2f} MB, last char added: {}'.format(epoch, batch_count + 1,
                                                                                        len(self._dataset_loader),

@@ -8,7 +8,11 @@ INF_REMOVE_WIDTH = 105
 # training
 save_every = 100
 add_character_every = 200
-produce_every = 50
+produce_every = 400
+num_characters_to_generate = 3
+random_characters_to_generate = 'ABCDE'
+D_loss_threshold = 0.5
+G_loss_threshold = 0.5
 
 # network
 IMAGE_WIDTH = 32
