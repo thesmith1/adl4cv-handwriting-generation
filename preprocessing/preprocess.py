@@ -1,6 +1,13 @@
 import os
 import cv2
+import sys
 import numpy as np
+
+lib_path = os.path.abspath(os.path.join(__file__, '../..'))
+sys.path.append(lib_path)
+ext_lib_path = os.path.abspath(os.path.join(__file__, '../../utils'))
+sys.path.append(ext_lib_path)
+
 from utils.global_vars import IMAGE_WIDTH, IMAGE_HEIGHT, INF_REMOVE_WIDTH, SUP_REMOVE_WIDTH
 from utils.image_utils import is_image
 
