@@ -65,15 +65,18 @@ class CGAN:
         self._G.train()
         return output
 
-    def train(self, n_epochs: int, next_letter_to_add: str):
+    def train(self, n_epochs: int, next_letter_to_add: str, use_soft_labels: bool = False):
         current_char_index = character_to_index_mapping[next_letter_to_add]  # 'A' is already present
         max_GPU_memory = 0
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
-        produce_transform = Compose([ToPILImage(), Resize((100, IMAGE_WIDTH)), ToTensor()])
+
+        # prepare image transform to plot in Tensorboard
+        new_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
+        produce_transform = Compose([ToPILImage(), Resize((new_image_height, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
-        letters_to_watch = list('ABCDEFabcdef0')
+        letters_to_watch = list(character_to_index_mapping.keys())
         fixed_latent_points = torch.from_numpy(randn(2 * len(letters_to_watch), NOISE_LENGTH)).to(self._device)
         character_condition = torch.from_numpy(character_to_one_hot(2 * letters_to_watch))
         style_P = torch.zeros((len(letters_to_watch), 1), dtype=torch.double)
@@ -123,6 +126,9 @@ class CGAN:
 
                 zero_label = torch.zeros(len(X)).to(device=self._device)
                 one_label = torch.ones(len(X)).to(device=self._device)
+                if use_soft_labels:
+                    zero_label += 0.25*torch.rand(len(X)).to(self._device)
+                    one_label -= 0.25*torch.rand(len(X)).to(self._device)
 
                 D_loss_real = self._D_loss(D_real, one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)
@@ -158,7 +164,7 @@ class CGAN:
                 self._writer.add_scalar("Loss/Discriminator", D_loss.item(), step)
                 self._writer.add_scalar("Discriminator response/to real images (average)", D_real.mean().item(), step)
                 self._writer.add_scalar("Discriminator response/to fake images (average)", D_fake.mean().item(), step)
-                print('Epoch {:2d}, batch {:2d}/{:2d}, D loss {:4f}, G loss {:4f}, '
+                print('Epoch {:4d}, batch {:3d}/{:3d}, D loss {:4f}, G loss {:4f}, '
                       'max GPU memory allocated {:.2f} MB, last char added: {}'.format(epoch, batch_count + 1,
                                                                                        len(self._dataset_loader),
                                                                                        D_loss, G_loss, max_GPU_memory,

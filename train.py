@@ -33,6 +33,8 @@ if __name__ == '__main__':
                    type=str, default=None)
     p.add_argument('-a', '--add', help="Allows to specify the last letter added in the dataset on the previous train",
                    type=str, default=None)
+    p.add_argument('-s', '--soft-labels', help="Soft labeling (0:0.25 and 0.75:1) for fake and real images",
+                   action='store_true')
     args = p.parse_args()
 
     current_datetime = str(datetime.now())
@@ -101,5 +103,5 @@ if __name__ == '__main__':
     gan = CGAN(g, d, BCELoss(), BCELoss(), G_optim=g_adam, D_optim=d_adam,
                dataset_loader=loader, dataset=char_ds, device=dev,
                writer=writer, current_datetime=current_datetime)
-    gan.train(20000, next_letter_to_add)
-
+    gan.train(add_character_every*len(character_to_index_mapping) + 1000,
+              next_letter_to_add=next_letter_to_add, use_soft_labels=args.soft_labels)
