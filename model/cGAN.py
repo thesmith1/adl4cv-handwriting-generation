@@ -6,7 +6,7 @@ import sys
 import torch
 from matplotlib.pyplot import show
 from numpy.random import randn, choice
-from numpy import concatenate, inf
+from numpy import concatenate
 from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
@@ -53,11 +53,10 @@ class CGAN:
 
     def generate(self, characters: tuple, style: int, do_print: bool = False):
         self._G.eval()
-        assert len(characters) == 3
-        assert style in (0, 1)
-        character_conditioning = character_to_one_hot(characters)
-        character_conditioning = torch.from_numpy(character_conditioning)
-        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)], dim=1).to(device=self._device)
+        assert len(characters) == 3 and style in (0, 1)
+        character_conditioning = torch.from_numpy(character_to_one_hot(characters))
+        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)],
+                                           dim=1).to(device=self._device)
         z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
         output = self._G(z, character_conditioning).cpu().detach().squeeze()
         if do_print:
@@ -152,13 +151,11 @@ class CGAN:
                 self._G_optim.zero_grad()
 
                 # Generator forward-loss-backward-update
-                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
 
+                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
                 G_sample = G_traced(z, c)
                 D_fake = D_traced(G_sample, c)
-
                 G_loss = self._G_loss(D_fake, one_label)
-
                 if G_loss > G_loss_threshold:
                     G_loss.backward()
                     self._G_optim.step(None)

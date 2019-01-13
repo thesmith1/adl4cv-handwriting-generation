@@ -40,10 +40,10 @@ class CharacterDataset(Dataset):
             except FileNotFoundError as e:
                 print(e)
         # Substitute the labels with _ with spaces
-        for idx, annotations in enumerate(self._labels):
-            for id, a in enumerate(annotations):
+        for i, annotations in enumerate(self._labels):
+            for j, a in enumerate(annotations):
                 if a == '_':
-                    self._labels[idx][id] = ' '
+                    self._labels[i][j] = ' '
 
     def add_character_to_training(self, char: str):
         new_images = []
