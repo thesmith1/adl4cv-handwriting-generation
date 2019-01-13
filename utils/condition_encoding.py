@@ -7,10 +7,14 @@ def index_to_one_hot(index):
 
 
 def character_to_one_hot(chars):
-    if not isinstance(chars, tuple) and not isinstance(chars, list):
-        chars = (chars,)
-    return np.stack([index_to_one_hot(character_to_index_mapping[char])
-                     if char != " " else np.zeros((NUM_CHARS,)) for char in chars])
+    assert isinstance(chars, tuple) or isinstance(chars, list)
+    assert len(chars) == 3
+    if all(isinstance(element, tuple) for element in chars):
+        ret_list = [np.concatenate([index_to_one_hot(character_to_index_mapping[char])
+                          if char != " " else np.zeros((NUM_CHARS,)) for char in triplet]) for triplet in zip(*chars)]
+        return np.stack(ret_list)
+    return np.expand_dims(np.concatenate([index_to_one_hot(character_to_index_mapping[char])
+                     if char != " " else np.zeros((NUM_CHARS,)) for char in chars]), 0)
 
 
 if __name__ == '__main__':

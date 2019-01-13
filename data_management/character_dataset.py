@@ -29,7 +29,7 @@ class CharacterDataset(Dataset):
         # Load the labels file
         file_content = np.loadtxt(self._labels_file_path, delimiter=' ', dtype=str)
         self._images_names = file_content[:, 0]
-        self._labels = file_content[:, 2]  # TODO: consider prev/next characters
+        self._labels = file_content[:, 1:4].tolist()
         self._styles = file_content[:, 4].astype(int)
         # Load the images
         for img_path in self._images_names:
@@ -40,14 +40,15 @@ class CharacterDataset(Dataset):
             except FileNotFoundError as e:
                 print(e)
         # Substitute the labels with _ with spaces
-        for idx, lab in enumerate(self._labels):
-            if lab == '_':
-                self._labels[idx] = ' '
+        for idx, annotations in enumerate(self._labels):
+            for id, a in enumerate(annotations):
+                if a == '_':
+                    self._labels[idx][id] = ' '
 
     def add_character_to_training(self, char: str):
         new_images = []
         for idx, lab in enumerate(self._labels):
-            if lab == char:
+            if lab[1] == char:
                 new_images.append((self._images[idx], lab, self._styles[idx]))
         self._training_images.extend(new_images)
 

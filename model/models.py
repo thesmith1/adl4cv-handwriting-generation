@@ -112,24 +112,24 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
     def __init__(self):
         super().__init__()
         self._device = None
-        self._reshape_condition = Reshape((-1, NUM_CHARS + 1, 1, 1))
+        self._reshape_condition = Reshape((-1, NUM_CHARS * 3 + 1, 1, 1))
         self._conv1 = nn.Sequential(
-            nn.Conv2d(1 + NUM_CHARS + 1, 1 + NUM_CHARS + 1, 5, 2, 2),
+            nn.Conv2d(1 + NUM_CHARS * 3 + 1, 1 + NUM_CHARS * 3 + 1, 5, 2, 2),
             nn.LeakyReLU()
         )
         self._conv2 = nn.Sequential(
-            nn.Conv2d(1 + (NUM_CHARS + 1) * 2, IMAGE_WIDTH + NUM_CHARS + 1, 5, 2, 2),
-            nn.BatchNorm2d(IMAGE_WIDTH + NUM_CHARS + 1),
+            nn.Conv2d(1 + (NUM_CHARS * 3 + 1) * 2, IMAGE_WIDTH + NUM_CHARS * 3 + 1, 5, 2, 2),
+            nn.BatchNorm2d(IMAGE_WIDTH + NUM_CHARS * 3 + 1),
             nn.LeakyReLU()
         )
-        self._flatten = Reshape((-1, (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS + 1)))
+        self._flatten = Reshape((-1, (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1)))
         self._linear1 = nn.Sequential(
-            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS + 1) + NUM_CHARS + 1, 1024),
+            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1) + NUM_CHARS * 3 + 1, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
         self._linear2 = nn.Sequential(
-            nn.Linear(1024 + NUM_CHARS + 1, 1),
+            nn.Linear(1024 + NUM_CHARS * 3 + 1, 1),
             nn.Sigmoid()
         )
         self.apply(xavier_init)
@@ -169,25 +169,25 @@ class ConditionalDCGANGenerator(ConditionalGenerator):
     def __init__(self):
         super().__init__()
         self._device = None
-        self._reshape_condition = Reshape((-1, NUM_CHARS + 1, 1, 1))
+        self._reshape_condition = Reshape((-1, NUM_CHARS * 3 + 1, 1, 1))
         self._linear1 = nn.Sequential(
-            nn.Linear(NOISE_LENGTH + NUM_CHARS + 1, 1024),
+            nn.Linear(NOISE_LENGTH + NUM_CHARS * 3 + 1, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(True)
         )
         self._linear2 = nn.Sequential(
-            nn.Linear(1024 + NUM_CHARS + 1, IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
+            nn.Linear(1024 + NUM_CHARS * 3 + 1, IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
             nn.BatchNorm1d(IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
             nn.ReLU(True)
         )
         self._reshape_input = Reshape((-1, IMAGE_WIDTH * 2, IMAGE_WIDTH // 4, IMAGE_WIDTH // 4))
         self._conv1 = nn.Sequential(
-            nn.ConvTranspose2d(IMAGE_WIDTH * 2 + NUM_CHARS + 1, IMAGE_WIDTH, 5, 2, 2, 1),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 2 + NUM_CHARS * 3 + 1, IMAGE_WIDTH, 5, 2, 2, 1),
             nn.BatchNorm2d(IMAGE_WIDTH),
             nn.ReLU(True)
         )
         self._conv2 = nn.Sequential(
-            nn.ConvTranspose2d(IMAGE_WIDTH + NUM_CHARS + 1, 1, 5, 2, 2, 1),
+            nn.ConvTranspose2d(IMAGE_WIDTH + NUM_CHARS * 3 + 1, 1, 5, 2, 2, 1),
             nn.Sigmoid()
         )
         self.apply(xavier_init)
@@ -207,7 +207,7 @@ class ConditionalDCGANGenerator(ConditionalGenerator):
         z = z.float().to(device=self._device)
         c = c.float().to(device=self._device)
         c_reshaped = self._reshape_condition(c)
-        x = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH + NUM_CHARS + 1)
+        x = torch.cat([z, c], dim=1).view(-1, NOISE_LENGTH + NUM_CHARS * 3 + 1)
         x = self._linear1(x)
         x = torch.cat([x, c], dim=1).float()
         x = self._linear2(x)

@@ -51,17 +51,17 @@ class CGAN:
         else:
             self._current_datetime = datetime.datetime.now()
 
-    def generate(self, character: str, style: int, do_print: bool = False):
+    def generate(self, characters: tuple, style: int, do_print: bool = False):
         self._G.eval()
-        assert len(character) == 1
+        assert len(characters) == 3
         assert style in (0, 1)
-        c = character_to_one_hot(character)
-        c = torch.from_numpy(c).to(device=self._device)
-        c = torch.cat([c, style*torch.ones((1, 1), dtype=torch.double).to(self._device)], dim=1)
+        character_conditioning = character_to_one_hot(characters)
+        character_conditioning = torch.from_numpy(character_conditioning)
+        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)], dim=1).to(device=self._device)
         z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
-        output = self._G(z, c).cpu().detach().squeeze()
+        output = self._G(z, character_conditioning).cpu().detach().squeeze()
         if do_print:
-            produce_figure(output, character)
+            produce_figure(output, "prev: {}, curr: {}, next: {}, style: {}".format(*character_conditioning, style))
             show()
         self._G.train()
         return output
@@ -79,7 +79,10 @@ class CGAN:
         # prepare fixed points in latent space
         letters_to_watch = list(character_to_index_mapping.keys())
         fixed_latent_points = torch.from_numpy(randn(2 * len(letters_to_watch), NOISE_LENGTH)).to(self._device)
-        character_condition = torch.from_numpy(character_to_one_hot(2 * letters_to_watch))
+        zero_conditioning = tuple([' ' for _ in range(2 * len(letters_to_watch))])
+        current_char_conditioning = tuple(2 * letters_to_watch)
+        character_condition = [zero_conditioning, current_char_conditioning, zero_conditioning]
+        character_condition = torch.from_numpy(character_to_one_hot(character_condition))
         style_P = torch.zeros((len(letters_to_watch), 1), dtype=torch.double)
         style_G = torch.ones((len(letters_to_watch), 1), dtype=torch.double)
         styles = torch.cat([style_P, style_G], dim=0)
@@ -88,9 +91,9 @@ class CGAN:
         # produced JIT models
         bs = self._dataset_loader.batch_size
         G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS + 1).to(self._device)))
+                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
         D_traced = torch.jit.trace(self._D, (torch.randn(bs, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS + 1).to(self._device)))
+                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
 
         # Epoch iteration
         step = 0
@@ -105,7 +108,7 @@ class CGAN:
 
             # Iterate over the dataset
             start_time = time.time()
-            for batch_count, (X, c, style) in enumerate(self._dataset_loader):
+            for batch_count, (X, labels, style) in enumerate(self._dataset_loader):
                 step += 1
 
                 zero_label = torch.zeros(len(X)).to(device=self._device)
@@ -116,8 +119,8 @@ class CGAN:
 
                 # Arrange data
                 X = X.to(device=self._device)
-                c = character_to_one_hot(c)
-                c = concatenate([c, style.unsqueeze(-1)], axis=1)
+                char_conditioning = character_to_one_hot(labels)
+                c = concatenate([char_conditioning, style.unsqueeze(-1)], axis=1)
                 c = torch.from_numpy(c).to(device=self._device)
 
                 # Reset gradient
@@ -195,9 +198,9 @@ class CGAN:
 
                 # generate random character images
                 for i in range(num_characters_to_generate):
-                    char = choice(list(random_characters_to_generate))
+                    conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                     style = choice([0, 1])
-                    image = self.generate(char, style, do_print=False)
+                    image = self.generate(conditioning, style, do_print=False)
                     image = produce_transform(image.unsqueeze(0))
-                    fig = produce_figure(image, "char: %s, style: %s" % (char, style))
+                    fig = produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*conditioning, style))
                     self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)

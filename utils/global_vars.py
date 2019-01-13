@@ -8,7 +8,7 @@ INF_REMOVE_WIDTH = 105
 # training
 save_every = 100
 add_character_every = 100
-produce_every = 200
+produce_every = 100
 num_characters_to_generate = 5
 random_characters_to_generate = 'ABCDE'
 D_loss_threshold = 0.3
