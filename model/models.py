@@ -17,7 +17,8 @@ from utils.global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
 def xavier_init(m):
     if type(m) in [nn.Conv2d, nn.Linear]:
         nn.init.xavier_normal_(m.weight)
-        m.bias.data.fill_(0.01)
+        if m.bias is not None:
+            m.bias.data.fill_(0.01)
 
 
 class Reshape(nn.Module):
@@ -118,13 +119,13 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
             nn.LeakyReLU()
         )
         self._conv2 = nn.Sequential(
-            nn.Conv2d(1 + (NUM_CHARS * 3 + 1) * 2, IMAGE_WIDTH + NUM_CHARS * 3 + 1, 5, 2, 2),
+            nn.Conv2d(1 + (NUM_CHARS * 3 + 1) * 2, IMAGE_WIDTH + NUM_CHARS * 3 + 1, 5, 2, 2, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH + NUM_CHARS * 3 + 1),
             nn.LeakyReLU()
         )
         self._flatten = Reshape((-1, (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1)))
         self._linear1 = nn.Sequential(
-            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1) + NUM_CHARS * 3 + 1, 1024),
+            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1) + NUM_CHARS * 3 + 1, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
@@ -171,18 +172,18 @@ class ConditionalDCGANGenerator(ConditionalGenerator):
         self._device = None
         self._reshape_condition = Reshape((-1, NUM_CHARS * 3 + 1, 1, 1))
         self._linear1 = nn.Sequential(
-            nn.Linear(NOISE_LENGTH + NUM_CHARS * 3 + 1, 1024),
+            nn.Linear(NOISE_LENGTH + NUM_CHARS * 3 + 1, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.ReLU(True)
         )
         self._linear2 = nn.Sequential(
-            nn.Linear(1024 + NUM_CHARS * 3 + 1, IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
+            nn.Linear(1024 + NUM_CHARS * 3 + 1, IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4), bias=False),
             nn.BatchNorm1d(IMAGE_WIDTH * 2 * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4)),
             nn.ReLU(True)
         )
         self._reshape_input = Reshape((-1, IMAGE_WIDTH * 2, IMAGE_WIDTH // 4, IMAGE_WIDTH // 4))
         self._conv1 = nn.Sequential(
-            nn.ConvTranspose2d(IMAGE_WIDTH * 2 + NUM_CHARS * 3 + 1, IMAGE_WIDTH, 5, 2, 2, 1),
+            nn.ConvTranspose2d(IMAGE_WIDTH * 2 + NUM_CHARS * 3 + 1, IMAGE_WIDTH, 5, 2, 2, 1, bias=False),
             nn.BatchNorm2d(IMAGE_WIDTH),
             nn.ReLU(True)
         )
