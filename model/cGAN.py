@@ -4,6 +4,8 @@ import os
 import sys
 
 import torch
+import matplotlib as mpl
+mpl.use('Agg')
 from matplotlib.pyplot import show
 from numpy.random import randn, choice
 from numpy import concatenate
