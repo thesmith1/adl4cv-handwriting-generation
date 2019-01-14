@@ -115,8 +115,9 @@ class CGAN:
                 zero_label = torch.zeros(len(X)).to(device=self._device)
                 one_label = torch.ones(len(X)).to(device=self._device)
                 if use_soft_labels:
-                    zero_label += 0.25 * torch.rand(len(X)).to(self._device)
-                    one_label -= 0.25 * torch.rand(len(X)).to(self._device)
+                    one_label_coefficient = 0.75
+                else:
+                    one_label_coefficient = 1
 
                 # Arrange data
                 X = X.to(device=self._device)
@@ -135,8 +136,8 @@ class CGAN:
                 D_real = D_traced(X, c)
                 D_fake = D_traced(G_sample.detach(), c)
 
-                D_loss_real = self._D_loss(D_real, one_label)
-                D_loss_fake = self._D_loss(D_fake, zero_label)
+                D_loss_real = self._D_loss(D_real, one_label_coefficient*one_label)
+                D_loss_fake = self._D_loss(D_fake, zero_label)  # smoothing is applied only to positive examples
                 D_loss = (D_loss_real + D_loss_fake) / 2
 
                 if D_loss > D_loss_threshold:
@@ -157,7 +158,7 @@ class CGAN:
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
                 G_sample = G_traced(z, c)
                 D_fake = D_traced(G_sample, c)
-                G_loss = self._G_loss(D_fake, one_label)
+                G_loss = self._G_loss(D_fake, one_label)  # no need for smoothing coefficient here either
                 if G_loss > G_loss_threshold:
                     G_loss.backward()
                     self._G_optim.step(None)
