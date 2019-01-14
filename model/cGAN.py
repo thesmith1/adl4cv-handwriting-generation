@@ -71,9 +71,9 @@ class CGAN:
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
-        # prepare image transform to plot in Tensorboard
-        new_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
-        produce_transform = Compose([ToPILImage(), Resize((new_image_height, IMAGE_WIDTH)), ToTensor()])
+        # prepare image transform to plot in TensorBoard
+        final_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
+        produce_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
         letters_to_watch = list(character_to_index_mapping.keys())
@@ -87,7 +87,7 @@ class CGAN:
         styles = torch.cat([style_P, style_G], dim=0)
         fixed_conditioning_inputs = torch.cat([character_condition, styles], dim=1).to(self._device)
 
-        # produced JIT models
+        # produce JIT models
         bs = self._dataset_loader.batch_size
         G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
                                              torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
@@ -182,6 +182,8 @@ class CGAN:
 
             # produce graphical results
             if epoch % produce_every == 0:
+
+                print("Producing evaluation results...")
                 self._G.eval()
 
                 # re-compute fixed point images
@@ -195,9 +197,10 @@ class CGAN:
 
                 # generate random character images
                 for i in range(num_characters_to_generate):
-                    conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
+                    character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                     style = choice([0, 1])
-                    image = self.generate(conditioning, style, do_print=False)
+                    image = self.generate(character_conditioning, style, do_print=False)
                     image = produce_transform(image.unsqueeze(0))
-                    fig = produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*conditioning, style))
+                    fig = produce_figure(image, "prev: {}, curr: {}, "
+                                                "next: {}, style: {}".format(*character_conditioning, style))
                     self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
