@@ -1,6 +1,26 @@
 # crop utility
 rectangle_shape = (420, 140)  # first param. must be tuned to match the height of two lines in a college-ruled notebook
 
+START_X, START_Y = 800, 400
+rectangle_resizable = False
+rectangle_color = (0, 0, 0)
+
+halfway_line_color = (0, 0, 0)
+halfway_line_visible = True
+
+CARRIAGE_RETURN_KEY = ord('r')
+QUIT_KEY = ord('q')
+INPUT_KEY = ord('i')
+LEFT_ARROW_KEY = 81
+UP_ARROW_KEY = 82
+RIGHT_ARROW_KEY = 83
+DOWN_ARROW_KEY = 84
+RETURN_KEY = 13
+DEF_KEY_SPEED = 10
+INCR_SPEED_KEY = ord('+')
+DECR_SPEED_KEY = ord('-')
+
+
 # pre-processing
 SUP_REMOVE_WIDTH = 25
 INF_REMOVE_WIDTH = 105
@@ -8,7 +28,7 @@ INF_REMOVE_WIDTH = 105
 # training
 save_every = 100
 add_character_every = 100
-produce_every = 100
+produce_every = 50
 num_characters_to_generate = 5
 random_characters_to_generate = 'ABCDE'
 D_loss_threshold = 0.3

@@ -3,7 +3,7 @@ import numpy as np
 import os
 from sys import exit
 import argparse
-from global_vars import rectangle_shape
+from global_vars import *
 
 FATAL = -1
 DEBUG = False
