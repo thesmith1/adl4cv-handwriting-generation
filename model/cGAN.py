@@ -75,7 +75,7 @@ class CGAN:
 
         # prepare image transform to plot in TensorBoard
         final_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
-        produce_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
+        finalizing_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
         letters_to_watch = list(character_to_index_mapping.keys())
@@ -180,22 +180,24 @@ class CGAN:
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
 
             if epoch % save_every == 0:
+                print("Saving...", end='')
                 torch.save(self._G, "./data/models/G_{}.pth".format(self._current_datetime))
                 torch.save(self._D, "./data/models/D_{}.pth".format(self._current_datetime))
+                print("done.")
 
             # produce graphical results
             if epoch % produce_every == 0:
 
-                print("Producing evaluation results...")
+                print("Producing evaluation results...", end='')
                 self._G.eval()
 
                 # re-compute fixed point images
                 images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
-                    image = produce_transform(image.cpu().detach())
+                    image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_P", image, global_step=epoch)
                 for image, letter in zip(images[NUM_CHARS:], letters_to_watch):
-                    image = produce_transform(image.cpu().detach())
+                    image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_G", image, global_step=epoch)
 
                 # generate random character images
@@ -203,7 +205,9 @@ class CGAN:
                     character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                     style = choice([0, 1])
                     image = self.generate(character_conditioning, style, do_print=False)
-                    image = produce_transform(image.unsqueeze(0))
+                    image = finalizing_transform(image.unsqueeze(0))
                     fig = produce_figure(image, "prev: {}, curr: {}, "
                                                 "next: {}, style: {}".format(*character_conditioning, style))
                     self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
+
+                print("done.")
