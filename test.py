@@ -18,9 +18,9 @@ lib_path = os.path.abspath(os.path.join(__file__, '.'))
 sys.path.append(lib_path)
 
 from utils.global_vars import *
-from condition_encoding import character_to_one_hot
+from utils.condition_encoding import character_to_one_hot
 from utils.image_utils import produce_figure
-from componentsGAN import ConditionalGenerator
+from model.componentsGAN import ConditionalGenerator
 
 models_path = './data/models/'
 logs_path = './model/runs/'

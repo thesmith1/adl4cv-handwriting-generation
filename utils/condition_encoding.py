@@ -1,5 +1,11 @@
+import os
+import sys
 import numpy as np
-from global_vars import character_to_index_mapping, NUM_CHARS
+
+lib_path = os.path.abspath(os.path.join(__file__, './utils'))
+sys.path.append(lib_path)
+
+from utils.global_vars import character_to_index_mapping, NUM_CHARS
 
 
 def index_to_one_hot(index):
