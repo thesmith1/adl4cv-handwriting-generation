@@ -8,7 +8,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib.pyplot import show
 from numpy.random import randn, choice
-from numpy import concatenate, inf
+from numpy import concatenate
 from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
@@ -55,11 +55,10 @@ class CGAN:
 
     def generate(self, characters: tuple, style: int, do_print: bool = False):
         self._G.eval()
-        assert len(characters) == 3
-        assert style in (0, 1)
-        character_conditioning = character_to_one_hot(characters)
-        character_conditioning = torch.from_numpy(character_conditioning)
-        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)], dim=1).to(device=self._device)
+        assert len(characters) == 3 and style in (0, 1)
+        character_conditioning = torch.from_numpy(character_to_one_hot(characters))
+        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)],
+                                           dim=1).to(device=self._device)
         z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
         output = self._G(z, character_conditioning).cpu().detach().squeeze()
         if do_print:
@@ -74,9 +73,9 @@ class CGAN:
         print('Starting epochs, GPU memory in use '
               'before loading the inputs: {} MB'.format(torch.cuda.memory_allocated(torch.cuda.current_device())/1e6))
 
-        # prepare image transform to plot in Tensorboard
-        new_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
-        produce_transform = Compose([ToPILImage(), Resize((new_image_height, IMAGE_WIDTH)), ToTensor()])
+        # prepare image transform to plot in TensorBoard
+        final_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH)*IMAGE_WIDTH//rectangle_shape[1]
+        finalizing_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
 
         # prepare fixed points in latent space
         letters_to_watch = list(character_to_index_mapping.keys())
@@ -90,7 +89,7 @@ class CGAN:
         styles = torch.cat([style_P, style_G], dim=0)
         fixed_conditioning_inputs = torch.cat([character_condition, styles], dim=1).to(self._device)
 
-        # produced JIT models
+        # produce JIT models
         bs = self._dataset_loader.batch_size
         G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
                                              torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
@@ -116,8 +115,9 @@ class CGAN:
                 zero_label = torch.zeros(len(X)).to(device=self._device)
                 one_label = torch.ones(len(X)).to(device=self._device)
                 if use_soft_labels:
-                    zero_label += 0.25 * torch.rand(len(X)).to(self._device)
-                    one_label -= 0.25 * torch.rand(len(X)).to(self._device)
+                    one_label_coefficient = 0.75
+                else:
+                    one_label_coefficient = 1
 
                 # Arrange data
                 X = X.to(device=self._device)
@@ -136,8 +136,8 @@ class CGAN:
                 D_real = D_traced(X, c)
                 D_fake = D_traced(G_sample.detach(), c)
 
-                D_loss_real = self._D_loss(D_real, one_label)
-                D_loss_fake = self._D_loss(D_fake, zero_label)
+                D_loss_real = self._D_loss(D_real, one_label_coefficient*one_label)
+                D_loss_fake = self._D_loss(D_fake, zero_label)  # smoothing is applied only to positive examples
                 D_loss = (D_loss_real + D_loss_fake) / 2
 
                 if D_loss > D_loss_threshold:
@@ -154,13 +154,11 @@ class CGAN:
                 self._G_optim.zero_grad()
 
                 # Generator forward-loss-backward-update
-                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
 
+                z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
                 G_sample = G_traced(z, c)
                 D_fake = D_traced(G_sample, c)
-
-                G_loss = self._G_loss(D_fake, one_label)
-
+                G_loss = self._G_loss(D_fake, one_label)  # no need for smoothing coefficient here either
                 if G_loss > G_loss_threshold:
                     G_loss.backward()
                     self._G_optim.step(None)
@@ -182,27 +180,34 @@ class CGAN:
             print('\nEpoch completed in {:.2f} s'.format(end_time - start_time))
 
             if epoch % save_every == 0:
+                print("Saving...", end='')
                 torch.save(self._G, "./data/models/G_{}.pth".format(self._current_datetime))
                 torch.save(self._D, "./data/models/D_{}.pth".format(self._current_datetime))
+                print("done.")
 
             # produce graphical results
             if epoch % produce_every == 0:
+
+                print("Producing evaluation results...", end='')
                 self._G.eval()
 
                 # re-compute fixed point images
                 images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
-                    image = produce_transform(image.cpu().detach())
+                    image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_P", image, global_step=epoch)
                 for image, letter in zip(images[NUM_CHARS:], letters_to_watch):
-                    image = produce_transform(image.cpu().detach())
+                    image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_G", image, global_step=epoch)
 
                 # generate random character images
                 for i in range(num_characters_to_generate):
-                    conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
+                    character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                     style = choice([0, 1])
-                    image = self.generate(conditioning, style, do_print=False)
-                    image = produce_transform(image.unsqueeze(0))
-                    fig = produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*conditioning, style))
+                    image = self.generate(character_conditioning, style, do_print=False)
+                    image = finalizing_transform(image.unsqueeze(0))
+                    fig = produce_figure(image, "prev: {}, curr: {}, "
+                                                "next: {}, style: {}".format(*character_conditioning, style))
                     self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
+
+                print("done.")

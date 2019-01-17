@@ -11,7 +11,7 @@ DEBUG = False
 valid_style_ids = [0, 1]
 win_name = "Crop image"
 main_window_mode = cv2.WINDOW_KEEPRATIO  # cv2.WINDOW_FULLSCREEN
-dest_save_folder = "../data/big/raw"
+dest_save_folder = "../data/big/raw2"
 
 START_X, START_Y = 800, 400
 rectangle_resizable = False
@@ -30,9 +30,10 @@ UP_ARROW_KEY = 82
 RIGHT_ARROW_KEY = 83
 DOWN_ARROW_KEY = 84
 RETURN_KEY = 13
-DEF_KEY_SPEED = 10
-INCR_SPEED_KEY = ord('+')
-DECR_SPEED_KEY = ord('-')
+DEF_VERTICAL_KEY_SPEED = 1
+DEF_HORIZONTAL_KEY_SPEED = 10
+INCR_HORIZONTAL_SPEED_KEY = ord('+')
+DECR_HORIZONTAL_SPEED_KEY = ord('-')
 
 
 class Rectangle:
@@ -55,7 +56,8 @@ class WindowOperationHandler:
         self.rectangle = init_rectangle
         self.save_folder = save_folder
 
-        self.key_speed = DEF_KEY_SPEED
+        self.horizontal_key_speed = DEF_HORIZONTAL_KEY_SPEED
+        self.vertical_key_speed = DEF_VERTICAL_KEY_SPEED
 
         self.text = text
         self.previous_char = " "
@@ -71,7 +73,7 @@ class WindowOperationHandler:
 
     def load_current_index(self):
         all_image_filenames = [filename for filename in os.listdir(self.save_folder) if ".jpg" in filename]
-        all_indices = {int(filename.replace(".jpg", "")) for filename in all_image_filenames}
+        all_indices = {int(filename.replace(".jpg", "").strip("_")) for filename in all_image_filenames}
         current_index = max(all_indices) if len(all_indices) > 0 else 0
         return current_index
 
@@ -160,28 +162,28 @@ class WindowOperationHandler:
         delta_x = 0
         delta_y = 0
         if key == UP_ARROW_KEY:
-            delta_y = -1 * self.key_speed
+            delta_y = -1 * self.vertical_key_speed
         elif key == DOWN_ARROW_KEY:
-            delta_y = 1 * self.key_speed
+            delta_y = 1 * self.vertical_key_speed
         elif key == LEFT_ARROW_KEY:
-            delta_x = -1 * self.key_speed
+            delta_x = -1 * self.horizontal_key_speed
         elif key == RIGHT_ARROW_KEY:
-            delta_x = 1 * self.key_speed
+            delta_x = 1 * self.horizontal_key_speed
         elif key == CARRIAGE_RETURN_KEY:
             new_y0 = self.rectangle.y0
             self.rectangle.x0 = START_X
             if self.rectangle.y0 + 2*self.rectangle.h < self.image.shape[0]:
                 new_y0 = self.rectangle.y0 + self.rectangle.h
             self.rectangle.y0 = new_y0
-        elif key == INCR_SPEED_KEY:
-            self.key_speed += 1
-            print("New key speed value is %d" % self.key_speed)
-        elif key == DECR_SPEED_KEY:
-            if self.key_speed > 1:
-                self.key_speed -= 1
-                print("New key speed value is %d" % self.key_speed)
+        elif key == INCR_HORIZONTAL_SPEED_KEY:
+            self.horizontal_key_speed += 1
+            print("New hor. key speed value is %d" % self.horizontal_key_speed)
+        elif key == DECR_HORIZONTAL_SPEED_KEY:
+            if self.horizontal_key_speed > 1:
+                self.horizontal_key_speed -= 1
+                print("New key hor. speed value is %d" % self.horizontal_key_speed)
             else:
-                print("Key speed is already minimized (value is %d)" % self.key_speed)
+                print("Hor. key speed is already minimized (value is %d)" % self.horizontal_key_speed)
         elif key == RETURN_KEY:
             self.save_crop()
             x1, y1 = self.rectangle.x0, self.rectangle.y0

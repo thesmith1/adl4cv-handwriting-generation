@@ -27,7 +27,8 @@ logs_path = './model/runs/'
 step = 0
 
 
-def generate(generator: ConditionalGenerator, characters: tuple, style: int, transform, writer: SummaryWriter, device, do_print: bool = False):
+def generate(generator: ConditionalGenerator, characters: tuple, style: int, transform,
+             writer: SummaryWriter, device, do_print: bool = False):
     assert len(characters) == 3
     assert style in (0, 1)
     character_conditioning = character_to_one_hot(characters)
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(prog="python train.py", description="Train GAN for handwriting generation")
     p.add_argument('-m', '--model', help="The model to be loaded",
                    type=str, required=True)
-    p.add_argument('-s', '--style', help="The style to use (0 or 1) (if empty, samples of both styles will be produced)",
+    p.add_argument('-s', '--style', help="The style to use (0 or 1; if empty, samples of both styles will be produced)",
                    type=int, default=None)
     args = p.parse_args()
 
@@ -88,16 +89,17 @@ if __name__ == '__main__':
     if args.style:
         styles_to_produce = [args.style]
 
-    new_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH) * IMAGE_WIDTH // rectangle_shape[1]
-    produce_transform = Compose([ToPILImage(), Resize((new_image_height, IMAGE_WIDTH)), ToTensor()])
+    final_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH) * IMAGE_WIDTH // rectangle_shape[1]
+    finalizing_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
 
-    print('Enter sequence of chars as [prev_char curr_char next_char] without spaces:')
     while True:
-        key_input = input()
+        key_input = input('Enter sequence of chars as [prev_char curr_char next_char] without spaces:')
         if key_input == 'quit':
             exit(True)
-        print('Generating {}...'.format(key_input))
+        print('Generating "{}"...'.format(key_input), end='')
 
         step = step + 1
         for st in styles_to_produce:
-            generate(g, tuple(list(key_input)), st, produce_transform, writer, dev, True)
+            generate(g, tuple(list(key_input)), st, finalizing_transform, writer, dev, True)
+
+        print("done.")

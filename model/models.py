@@ -125,7 +125,8 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
         )
         self._flatten = Reshape((-1, (IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1)))
         self._linear1 = nn.Sequential(
-            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1) + NUM_CHARS * 3 + 1, 1024, bias=False),
+            nn.Linear((IMAGE_WIDTH // 4) * (IMAGE_WIDTH // 4) * (IMAGE_WIDTH + NUM_CHARS * 3 + 1) + NUM_CHARS * 3 + 1,
+                      out_features=1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
