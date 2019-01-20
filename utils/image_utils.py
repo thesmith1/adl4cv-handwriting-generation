@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use('Agg')  # Needed if running on Google Cloud
 from torch import Tensor
 from matplotlib.pyplot import figure, imshow
 
