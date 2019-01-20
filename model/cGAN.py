@@ -1,12 +1,10 @@
 import datetime
-import time
 import os
 import sys
+import time
 
 import torch
-import matplotlib as mpl
-mpl.use('Agg')
-from matplotlib.pyplot import show
+
 from numpy.random import randn, choice
 from numpy import concatenate
 from tensorboardX import SummaryWriter
@@ -52,20 +50,6 @@ class CGAN:
             self._current_datetime = current_datetime
         else:
             self._current_datetime = datetime.datetime.now()
-
-    def generate(self, characters: tuple, style: int, do_print: bool = False):
-        self._G.eval()
-        assert len(characters) == 3 and style in (0, 1)
-        character_conditioning = torch.from_numpy(character_to_one_hot(characters))
-        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)],
-                                           dim=1).to(device=self._device)
-        z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
-        output = self._G(z, character_conditioning).cpu().detach().squeeze()
-        if do_print:
-            produce_figure(output, "prev: {}, curr: {}, next: {}, style: {}".format(*character_conditioning, style))
-            show()
-        self._G.train()
-        return output
 
     def train(self, n_epochs: int, next_letter_to_add: str, use_soft_labels: bool = False):
         current_char_index = character_to_index_mapping[next_letter_to_add]  # ' ' is already present
@@ -204,10 +188,10 @@ class CGAN:
                 for i in range(num_characters_to_generate):
                     character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                     style = choice([0, 1])
-                    image = self.generate(character_conditioning, style, do_print=False)
+                    image = self._G.generate(character_conditioning, style)
                     image = finalizing_transform(image.unsqueeze(0))
                     fig = produce_figure(image, "prev: {}, curr: {}, "
                                                 "next: {}, style: {}".format(*character_conditioning, style))
                     self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
 
-                print("done.")
+                print("Done.")

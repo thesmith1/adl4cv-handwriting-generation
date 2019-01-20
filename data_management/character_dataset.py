@@ -1,4 +1,5 @@
 import numpy as np
+from random import choice
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import Compose, ToTensor, Resize
 from PIL.Image import open
@@ -51,6 +52,14 @@ class CharacterDataset(Dataset):
             if lab[1] == char:
                 new_images.append((self._images[idx], lab, self._styles[idx]))
         self._training_images.extend(new_images)
+
+    def get_sample(self, prev_char: str, curr_char: str, next_char: str, st: int):
+        assert(len(prev_char) == len(curr_char) == len(next_char) == 1)
+        samples = [s for idx, s in enumerate(self._images)
+                   if self._labels[idx] == [prev_char, curr_char, next_char] and self._styles[idx] == st]
+        if len(samples) == 0:
+            raise ValueError('No samples matches the given specification: {}{}{}'.format(prev_char, curr_char, next_char))
+        return choice(samples)
 
 
 if __name__ == '__main__':

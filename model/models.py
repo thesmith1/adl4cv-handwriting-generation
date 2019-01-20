@@ -1,6 +1,8 @@
 import os
 import sys
 
+from numpy.random import randn
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -12,6 +14,7 @@ sys.path.append(ext_lib_path)
 
 from componentsGAN import ConditionalDiscriminator, ConditionalGenerator
 from utils.global_vars import NOISE_LENGTH, IMAGE_WIDTH, NUM_CHARS
+from utils.condition_encoding import character_to_one_hot
 
 
 def xavier_init(m):

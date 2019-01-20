@@ -5,12 +5,11 @@ from datetime import datetime
 from os import listdir
 from os.path import isfile, join
 
+import matplotlib as mpl
 from tensorboardX import SummaryWriter
 
-import matplotlib as mpl
 mpl.use('Agg')  # Needed if running on Google Cloud
 from matplotlib.pyplot import show
-from numpy.random import randn
 import torch
 from torchvision.transforms import Resize, Compose, ToPILImage, ToTensor
 
@@ -18,33 +17,11 @@ lib_path = os.path.abspath(os.path.join(__file__, '.'))
 sys.path.append(lib_path)
 
 from utils.global_vars import *
-from utils.condition_encoding import character_to_one_hot
 from utils.image_utils import produce_figure
-from model.componentsGAN import ConditionalGenerator
 
 models_path = './data/models/'
 logs_path = './model/runs/'
 step = 0
-
-
-def generate(generator: ConditionalGenerator, characters: tuple, style: int, transform,
-             writer: SummaryWriter, device, do_print: bool = False):
-    assert len(characters) == 3
-    assert style in (0, 1)
-    character_conditioning = character_to_one_hot(characters)
-    character_conditioning = torch.from_numpy(character_conditioning)
-    character_conditioning = torch.cat([character_conditioning, style * torch.ones((1, 1), dtype=torch.double)],
-                                       dim=1).to(device=device)
-    z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(device)
-    style_str = '_P'
-    if style:
-        style_str = '_G'
-    image = generator(z, character_conditioning).cpu().detach().squeeze()
-    image = transform(image.unsqueeze(0))
-    if do_print:
-        produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*characters, style))
-        show()
-        writer.add_image('Generated/' + ''.join(characters) + style_str, image, global_step=step)
 
 
 if __name__ == '__main__':
@@ -100,6 +77,13 @@ if __name__ == '__main__':
 
         step = step + 1
         for st in styles_to_produce:
-            generate(g, tuple(list(key_input)), st, finalizing_transform, writer, dev, True)
-
+            characters = tuple(list(key_input))
+            style_str = '_P'
+            if st:
+                style_str = '_G'
+            output = g.generate(characters, st)
+            image = finalizing_transform(output.unsqueeze(0))
+            produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*characters, st))
+            show()
+            writer.add_image('Generated/' + ''.join(characters) + style_str, image, global_step=step)
         print("done.")
