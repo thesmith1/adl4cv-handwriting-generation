@@ -19,10 +19,7 @@ DEBUG = False
 WHITE = (255, 255, 255)
 GRAY = (180, 180, 180)
 BLACK = (0, 0, 0)
-BLACK_LINE_WIDTH = 20  # Prev 16
-MORPH_ELEMENT_SHAPE = (1, 10)
-
-NOISE_REMOVAL_STRENGTH = 7
+NOISE_REMOVAL_STRENGTH = 5
 
 
 def color_k_means(image, mu_init, mask=None):
@@ -59,48 +56,41 @@ def color_k_means(image, mu_init, mask=None):
 
 def process_image(image):
 
-    # 2-means clustering to find background
-    mu = [GRAY, WHITE]
-    z, _ = color_k_means(image, mu)
     if DEBUG:
         cv2.imshow("original", image)
-    image[z == 1] = BLACK
-    if DEBUG:
-        cv2.imshow("background-clustered", image)
+        cv2.moveWindow("original", 0, 100)
 
-    # gray-scaling
-    image[np.all(image != BLACK, axis=-1)] = WHITE
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # extract a-channel
+    image_lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(image_lab)
     if DEBUG:
-        cv2.imshow("gray-scaled", image)
+        cv2.imshow("a-channel", a)
+        cv2.moveWindow("a-channel", 800, 100)
 
-    # line removal with morphological operations
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, MORPH_ELEMENT_SHAPE)
-    h, w = image.shape
-    image_part_with_line = image[(h - BLACK_LINE_WIDTH)//2:(h + BLACK_LINE_WIDTH)//2, :]
-
-    cv2.erode(src=image_part_with_line, dst=image_part_with_line,
-              kernel=kernel, borderValue=(-1, -1), iterations=1)
+    # increase contrast
+    image = np.clip((a-np.min(a))*1.5, 0, 255).astype(np.uint8)
     if DEBUG:
-        cv2.imshow("post erosion", image)
-
-    cv2.dilate(src=image_part_with_line, dst=image_part_with_line,
-               kernel=kernel, borderValue=(-1, -1), iterations=1)
-    if DEBUG:
-        cv2.imshow("post dilatation", image)
+        cv2.imshow("contrast in lab", image)
+        cv2.moveWindow("contrast in lab", 1200, 100)
 
     # noise removal
+    image[image < 25] = 0
     image = cv2.medianBlur(image, ksize=NOISE_REMOVAL_STRENGTH)
     if DEBUG:
         cv2.imshow("noise removed", image)
+        cv2.moveWindow("noise removed", 1600, 100)
 
-    # border removal
+    # final saturation
+    image = np.clip(image * 10., 0., 255.).astype(np.uint8)
+
+    # border removed
     image = image[SUP_REMOVE_WIDTH:-INF_REMOVE_WIDTH, :]
 
     # final resize
     # image = cv2.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH))
     if DEBUG:
-        cv2.imshow("final result", image), cv2.waitKey(0)
+        cv2.imshow("final result", image)
+        cv2.moveWindow("final result", 2000, 100), cv2.waitKey(0)
 
     return image
 
@@ -108,7 +98,7 @@ def process_image(image):
 if __name__ == '__main__':
 
     all_filenames = os.listdir(source_dir)
-    for file_count, filename in enumerate(sorted(all_filenames)):
+    for file_count, filename in enumerate(sorted(all_filenames, reverse=False)):
         if is_image(filename):
             print("Processing '%s' [%3d/%3d]..." % (filename, file_count + 1, len(all_filenames)), end='\r')
             image_path = os.path.join(source_dir, filename)
