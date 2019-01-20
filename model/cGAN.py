@@ -185,13 +185,16 @@ class CGAN:
                     self._writer.add_image("Fixed latent points/" + letter + "_G", image, global_step=epoch)
 
                 # generate random character images
-                for i in range(num_characters_to_generate):
-                    character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
-                    style = choice([0, 1])
-                    image = self._G.generate(character_conditioning, style)
-                    image = finalizing_transform(image.unsqueeze(0))
-                    fig = produce_figure(image, "prev: {}, curr: {}, "
-                                                "next: {}, style: {}".format(*character_conditioning, style))
-                    self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
+                random_characters_to_generate = list(key for key, value in character_to_index_mapping.items()
+                                                     if value < current_char_index - 1) + [' ']
+                if random_characters_to_generate:
+                    for i in range(num_characters_to_generate):
+                        character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
+                        style = choice([0, 1])
+                        image = self._G.generate(character_conditioning, style)
+                        image = finalizing_transform(image.unsqueeze(0))
+                        fig = produce_figure(image, "prev: {}, curr: {}, "
+                                                    "next: {}, style: {}".format(*character_conditioning, style))
+                        self._writer.add_figure("Random characters/%d" % i, fig, global_step=epoch)
 
-                print("Done.")
+                print("done.")

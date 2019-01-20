@@ -92,7 +92,7 @@ if __name__ == '__main__':
         next_letter_to_add = args.add
         last_char_added_index = character_to_index_mapping[args.add]
         for curr_char in character_to_index_mapping.keys():
-            if curr_char == 'A':  # the A is already present
+            if curr_char == ' ':  # the space is already present
                 pass
             if curr_char == next_letter_to_add:
                 break

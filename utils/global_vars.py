@@ -30,7 +30,6 @@ save_every = 100
 add_character_every = 100
 produce_every = 50
 num_characters_to_generate = 5
-random_characters_to_generate = 'ABCDE'
 D_loss_threshold = 0.3
 G_loss_threshold = 0.3
 
