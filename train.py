@@ -66,8 +66,8 @@ if __name__ == '__main__':
                 g_path = join(models_path, g)
                 break
         if d_path != '' and g_path != '':
-            g = torch.jit.load(g_path)
-            d = torch.jit.load(d_path)
+            g = torch.load(g_path)
+            d = torch.load(d_path)
             current_datetime = d_path.split('/')[-1][2:-3]  # models MUST be .pt, not .pth
             print('Loaded {} and {}'.format(d_path, g_path))
         else:

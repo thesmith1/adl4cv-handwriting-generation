@@ -72,13 +72,6 @@ class CGAN:
         styles = torch.cat([style_P, style_G], dim=0)
         fixed_conditioning_inputs = torch.cat([character_condition, styles], dim=1).to(self._device)
 
-        # produce JIT models
-        bs = self._dataset_loader.batch_size
-        G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
-        D_traced = torch.jit.trace(self._D, (torch.randn(bs, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
-                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
-
         # Epoch iteration
         step = 0
         for epoch in range(1, n_epochs + 1):
@@ -115,9 +108,9 @@ class CGAN:
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device=self._device)
 
                 # Discriminator forward-loss-backward-update
-                G_sample = G_traced(z, c)
-                D_real = D_traced(X, c)
-                D_fake = D_traced(G_sample.detach(), c)
+                G_sample = self._G(z, c)
+                D_real = self._D(X, c)
+                D_fake = self._D(G_sample.detach(), c)
 
                 D_loss_real = self._D_loss(D_real, one_label_coefficient*one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)  # smoothing is applied only to positive examples
@@ -139,8 +132,8 @@ class CGAN:
                 # Generator forward-loss-backward-update
 
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
-                G_sample = G_traced(z, c)
-                D_fake = D_traced(G_sample, c)
+                G_sample = self._G(z, c)
+                D_fake = self._D(G_sample, c)
                 G_loss = self._G_loss(D_fake, one_label)  # no need for smoothing coefficient here either
                 if G_loss > G_loss_threshold:
                     G_loss.backward()
@@ -164,8 +157,8 @@ class CGAN:
 
             if epoch % save_every == 0:
                 print("Saving...", end='')
-                G_traced.save("./data/models/G_{}.pt".format(str(self._current_datetime).replace(":", "-")))
-                D_traced.save("./data/models/D_{}.pt".format(str(self._current_datetime).replace(":", "-")))
+                torch.save(self._G, "./data/models/G_{}.pt".format(str(self._current_datetime)))
+                torch.save(self._D, "./data/models/D_{}.pt".format(str(self._current_datetime)))
                 print("done.")
 
             # produce graphical results
@@ -175,7 +168,7 @@ class CGAN:
                 self._G.eval()
 
                 # re-compute fixed point images
-                images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
+                images = self._G(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
                     image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_P", image, global_step=epoch)
@@ -190,7 +183,7 @@ class CGAN:
                     for i in range(num_characters_to_generate):
                         character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                         style = choice([0, 1])
-                        image = generate(G_traced, character_conditioning, style, device=self._device)
+                        image = generate(self._G, character_conditioning, style, device=self._device)
                         image = finalizing_transform(image.unsqueeze(0))
                         fig = produce_figure(image, "prev: {}, curr: {}, "
                                                     "next: {}, style: {}".format(*character_conditioning, style))
