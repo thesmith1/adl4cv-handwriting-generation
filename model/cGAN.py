@@ -2,7 +2,6 @@ import datetime
 import os
 import sys
 import time
-
 import torch
 
 from numpy.random import randn, choice
@@ -22,7 +21,7 @@ from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
 from condition_encoding import character_to_one_hot
 from data_management.character_dataset import CharacterDataset
 from global_vars import *
-from image_utils import produce_figure
+from image_utils import produce_figure, generate
 
 
 class CGAN:
@@ -165,8 +164,8 @@ class CGAN:
 
             if epoch % save_every == 0:
                 print("Saving...", end='')
-                torch.save(self._G, "./data/models/G_{}.pth".format(self._current_datetime))
-                torch.save(self._D, "./data/models/D_{}.pth".format(self._current_datetime))
+                G_traced.save("./data/models/G_{}.pt".format(str(self._current_datetime).replace(":", "-")))
+                D_traced.save("./data/models/D_{}.pt".format(str(self._current_datetime).replace(":", "-")))
                 print("done.")
 
             # produce graphical results
@@ -191,7 +190,7 @@ class CGAN:
                     for i in range(num_characters_to_generate):
                         character_conditioning = (' ', choice(list(random_characters_to_generate)), ' ')
                         style = choice([0, 1])
-                        image = self._G.generate(character_conditioning, style)
+                        image = generate(G_traced, character_conditioning, style, device=self._device)
                         image = finalizing_transform(image.unsqueeze(0))
                         fig = produce_figure(image, "prev: {}, curr: {}, "
                                                     "next: {}, style: {}".format(*character_conditioning, style))

@@ -1,9 +1,24 @@
 import matplotlib as mpl
 mpl.use('Agg')  # Needed if running on Google Cloud
+
+import torch
+from condition_encoding import character_to_one_hot
+from global_vars import NOISE_LENGTH
 from torch import Tensor
 from matplotlib.pyplot import figure, imshow
 
 accepted_image_extensions = ["jpg", "jpeg", "png", "bmp", "tiff"]
+
+
+def generate(model, characters: tuple, style: int, device=torch.device('cpu')):
+    model.eval()
+    assert len(characters) == 3 and style in (0, 1)
+    character_conditioning = torch.from_numpy(character_to_one_hot(characters))
+    character_conditioning = torch.cat([character_conditioning, style * torch.ones((1, 1), dtype=torch.double)],
+                                       dim=1).to(device=device)
+    z = torch.randn(1, NOISE_LENGTH).to(device)
+    output = model(z, character_conditioning).cpu().detach().squeeze()
+    return output
 
 
 def produce_figure(img: Tensor, label: str):

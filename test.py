@@ -6,9 +6,9 @@ from os import listdir
 from os.path import isfile, join
 
 import matplotlib as mpl
-from tensorboardX import SummaryWriter
-
 mpl.use('Agg')  # Needed if running on Google Cloud
+
+from tensorboardX import SummaryWriter
 from matplotlib.pyplot import show
 import torch
 from torchvision.transforms import Resize, Compose, ToPILImage, ToTensor
@@ -17,7 +17,8 @@ lib_path = os.path.abspath(os.path.join(__file__, '.'))
 sys.path.append(lib_path)
 
 from utils.global_vars import *
-from utils.image_utils import produce_figure
+from utils.image_utils import generate, produce_figure
+
 
 models_path = './data/models/'
 logs_path = './model/runs/'
@@ -44,21 +45,20 @@ if __name__ == '__main__':
     # Init models
     print('Loading the model...')
     g_models = [f for f in listdir(models_path) if
-                isfile(join(models_path, f)) and f.endswith('.pth') and f[0] == 'G']
+                isfile(join(models_path, f)) and f.endswith('.pt') and f[0] == 'G']
     g_path = ''
     for g in g_models:
         if args.model in g:
             g_path = join(models_path, g)
             break
     if g_path != '':
-        g = torch.load(g_path)
-        g.to(device=dev)
+        g = torch.jit.load(g_path)
         g.eval()
         print('Loaded {}'.format(g_path))
     else:
         raise Exception('Could not find the model')
 
-    print(join(logs_path, current_datetime))
+    print("Results available in experiment %s" % join(logs_path, current_datetime))
     writer = SummaryWriter(join(logs_path, current_datetime))
 
     # Prepare style(s) to use
@@ -77,11 +77,11 @@ if __name__ == '__main__':
 
         step = step + 1
         for st in styles_to_produce:
-            characters = tuple(list(key_input))
+            characters = tuple(key_input)
             style_str = '_P'
             if st:
                 style_str = '_G'
-            output = g.generate(characters, st)
+            output = generate(g, characters, st, device=dev)
             image = finalizing_transform(output.unsqueeze(0))
             produce_figure(image, "prev: {}, curr: {}, next: {}, style: {}".format(*characters, st))
             show()

@@ -49,14 +49,3 @@ class ConditionalGenerator(Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def forward(self, z: Variable, c: Variable):
         raise NotImplementedError('Should have implemented this.')
-
-    def generate(self, characters: tuple, style: int):
-        self.eval()
-        assert len(characters) == 3 and style in (0, 1)
-        character_conditioning = torch.from_numpy(character_to_one_hot(characters))
-        character_conditioning = torch.cat([character_conditioning, style*torch.ones((1, 1), dtype=torch.double)],
-                                           dim=1).to(device=self._device)
-        z = torch.from_numpy(randn(1, NOISE_LENGTH)).to(self._device)
-        output = self.forward(z, character_conditioning).cpu().detach().squeeze()
-        self.train()
-        return output

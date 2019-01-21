@@ -52,9 +52,9 @@ if __name__ == '__main__':
     if args.model:
         print("Loading models...")
         d_models = [f for f in listdir(models_path) if
-                    isfile(join(models_path, f)) and f.endswith('.pth') and f[0] == 'D']
+                    isfile(join(models_path, f)) and f.endswith('.pt') and f[0] == 'D']
         g_models = [f for f in listdir(models_path) if
-                    isfile(join(models_path, f)) and f.endswith('.pth') and f[0] == 'G']
+                    isfile(join(models_path, f)) and f.endswith('.pt') and f[0] == 'G']
         d_path = ''
         g_path = ''
         for d in d_models:
@@ -66,9 +66,9 @@ if __name__ == '__main__':
                 g_path = join(models_path, g)
                 break
         if d_path != '' and g_path != '':
-            g = torch.load(g_path)
-            d = torch.load(d_path)
-            current_datetime = d_path.split('/')[-1][2:-4]  # models MUST be .pth, not .pt
+            g = torch.jit.load(g_path)
+            d = torch.jit.load(d_path)
+            current_datetime = d_path.split('/')[-1][2:-3]  # models MUST be .pt, not .pth
             print('Loaded {} and {}'.format(d_path, g_path))
         else:
             raise Exception('Could not find the models')
