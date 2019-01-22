@@ -53,7 +53,7 @@ if __name__ == '__main__':
             break
     if g_path != '':
         g = torch.load(g_path)
-        g.to(dev)
+        g.to(device=dev)
         g.eval()
         print('Loaded {}'.format(g_path))
     else:
