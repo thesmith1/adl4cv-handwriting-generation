@@ -78,14 +78,14 @@ if __name__ == '__main__':
 
     # Init optimizers
     print('Initializing the optimizers...')
-    g_adam = Adam(g.parameters(), lr=1e-4)
-    d_adam = Adam(d.parameters(), lr=1e-4)
+    g_adam = Adam(g.parameters(), lr=gen_lr, weight_decay=dis_l2_reg)
+    d_adam = Adam(d.parameters(), lr=dis_lr, weight_decay=gen_l2_reg)
 
     # Load the dataset
     print("Loading dataset...")
     transform = Compose([Resize((IMAGE_HEIGHT, IMAGE_WIDTH)), ToTensor()])
     char_ds = CharacterDataset(dataset_path, labels_file, transform)
-    loader = DataLoader(char_ds, batch_size=32, shuffle=True)
+    loader = DataLoader(char_ds, batch_size=batch_size, shuffle=True)
 
     # Restore the content of the dataset if the training is not new
     if args.add:

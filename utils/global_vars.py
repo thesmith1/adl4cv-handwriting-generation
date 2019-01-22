@@ -26,10 +26,15 @@ SUP_REMOVE_WIDTH = 25
 INF_REMOVE_WIDTH = 105
 
 # training
-save_every = 100
-add_character_every = 100
-produce_every = 50
-num_characters_to_generate = 5
+batch_size = 32
+dis_lr = 1e-4
+gen_lr = 1e-4
+dis_l2_reg = 0
+gen_l2_reg = 0
+save_every = 50
+add_character_every = 50
+produce_every = 25
+num_characters_to_generate = 10
 D_loss_threshold = 0.3
 G_loss_threshold = 0.3
 
