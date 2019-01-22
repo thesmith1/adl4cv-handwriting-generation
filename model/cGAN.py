@@ -72,6 +72,13 @@ class CGAN:
         styles = torch.cat([style_P, style_G], dim=0)
         fixed_conditioning_inputs = torch.cat([character_condition, styles], dim=1).to(self._device)
 
+        # produce JIT models
+        bs = self._dataset_loader.batch_size
+        G_traced = torch.jit.trace(self._G, (torch.randn(bs, NOISE_LENGTH).to(self._device),
+                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
+        D_traced = torch.jit.trace(self._D, (torch.randn(bs, 1, IMAGE_HEIGHT, IMAGE_WIDTH).to(self._device),
+                                             torch.randn(bs, NUM_CHARS * 3 + 1).to(self._device)))
+
         # Epoch iteration
         step = 0
         for epoch in range(1, n_epochs + 1):
@@ -113,9 +120,9 @@ class CGAN:
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(device=self._device)
 
                 # Discriminator forward-loss-backward-update
-                G_sample = self._G(z, c)
-                D_real = self._D(X, c)
-                D_fake = self._D(G_sample.detach(), c)
+                G_sample = G_traced(z, c)
+                D_real = D_traced(X, c)
+                D_fake = D_traced(G_sample.detach(), c)
 
                 D_loss_real = self._D_loss(D_real, one_label_coefficient*one_label)
                 D_loss_fake = self._D_loss(D_fake, zero_label)  # smoothing is applied only to positive examples
@@ -137,8 +144,8 @@ class CGAN:
                 # Generator forward-loss-backward-update
 
                 z = torch.from_numpy(randn(len(X), NOISE_LENGTH)).to(self._device)
-                G_sample = self._G(z, c)
-                D_fake = self._D(G_sample, c)
+                G_sample = G_traced(z, c)
+                D_fake = D_traced(G_sample, c)
                 G_loss = self._G_loss(D_fake, one_label)  # no need for smoothing coefficient here either
                 if G_loss > G_loss_threshold:
                     G_loss.backward()
@@ -173,7 +180,7 @@ class CGAN:
                 self._G.eval()
 
                 # re-compute fixed point images
-                images = self._G(fixed_latent_points, fixed_conditioning_inputs)
+                images = G_traced(fixed_latent_points, fixed_conditioning_inputs)
                 for image, letter in zip(images[:NUM_CHARS], letters_to_watch):
                     image = finalizing_transform(image.cpu().detach())
                     self._writer.add_image("Fixed latent points/" + letter + "_P", image, global_step=epoch)

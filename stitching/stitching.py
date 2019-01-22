@@ -69,7 +69,7 @@ if __name__ == '__main__':
     # Init models
     print('Loading the model...')
     g_models = [f for f in listdir(models_path) if
-                isfile(join(models_path, f)) and f.endswith('.pth') and f[0] == 'G']
+                isfile(join(models_path, f)) and f.endswith('.pt') and f[0] == 'G']
     g_path = ''
     for g in g_models:
         if args.model in g:
