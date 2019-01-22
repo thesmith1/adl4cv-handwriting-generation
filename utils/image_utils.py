@@ -2,8 +2,8 @@ import matplotlib as mpl
 mpl.use('Agg')  # Needed if running on Google Cloud
 
 import torch
-from condition_encoding import character_to_one_hot
-from global_vars import NOISE_LENGTH
+from utils.condition_encoding import character_to_one_hot
+from utils.global_vars import NOISE_LENGTH
 from torch import Tensor
 from matplotlib.pyplot import figure, imshow
 
