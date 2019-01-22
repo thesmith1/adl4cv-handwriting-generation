@@ -86,7 +86,12 @@ class CGAN:
             # Iterate over the dataset
             start_time = time.time()
             for batch_count, (X, labels, style) in enumerate(self._dataset_loader):
-                step += 1
+
+                # batch norm does not allow bs=1, so we check
+                if len(X) == 1:
+                    continue
+                else:
+                    step += 1
 
                 zero_label = torch.zeros(len(X)).to(device=self._device)
                 one_label = torch.ones(len(X)).to(device=self._device)
