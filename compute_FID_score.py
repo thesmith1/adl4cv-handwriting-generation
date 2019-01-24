@@ -15,6 +15,7 @@ DEF_DATASET_FOLDER = './data/big/processed'
 DEF_LABEL_FILE = './data/big/labels.txt'
 iterations = 1000
 batch_size = 28
+compute_fid_every = 100
 
 
 def compute_features(self, x):
@@ -98,6 +99,8 @@ def parse_args():
 
 
 def main(args):
+
+    # load generator
     print("Loading model to evaluate...", end='')
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = torch.load(args.model_file)
@@ -105,18 +108,21 @@ def main(args):
     model.eval()
     print('done.')
 
+    # load inception_v3
     print('Loading Inception model...', end='')
     inception_model = inception_v3(pretrained=True)
     inception_model.to(device)
     inception_model.eval()
     print('done.')
 
+    # prepare dataset and data loader
     print('Preparing data loaders...', end='')
     image_transform = Compose([lambda x: resize(x, (299, 299)), ToTensor()])
     real_image_dataset = DatasetFromFolder(root=arguments.dataset_folder, transform=image_transform)
     real_image_loader = DataLoader(real_image_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
     print('done.')
 
+    # read label file to obtain conditional distribution
     print('Processing label file...', end='')
     label_file = np.loadtxt(args.label_file, delimiter=' ', dtype=str)[:, 1:4]
     label_file[label_file == '_'] = ' '
@@ -128,6 +134,7 @@ def main(args):
     character_occurrences = list(character_occurrences.values())
     print('done.')
 
+    # compute or load Inception features for real data
     if args.precomputed_features is None:
         print("Producing Inception features for real data...", end='')
         real_features = []
@@ -146,7 +153,7 @@ def main(args):
 
     print('Starting evaluation...')
     generated_features = None
-    for i in range(iterations):
+    for i in range(1, iterations + 1):
 
         # produce generated images
         random_conditioning_characters = np.random.choice(possible_character_combinations,
@@ -175,12 +182,13 @@ def main(args):
             generated_features = generated_features_batch
 
         # compute FID score
-        mu_generated = np.mean(generated_features, axis=0)
-        cov_generated = np.cov(generated_features, rowvar=False)
-        mu_difference = mu_real - mu_generated
-        fid_score = np.dot(mu_difference, mu_difference) + trace_cov_real + np.trace(cov_generated) - \
-                    2*np.trace(sqrtm(cov_real.dot(cov_generated), disp=False)[0])
-        print("Iteration %d, FID: %f, generated images: %d" % (i, fid_score.real, len(generated_features)))
+        if i % compute_fid_every == 0:
+            mu_generated = np.mean(generated_features, axis=0)
+            cov_generated = np.cov(generated_features, rowvar=False)
+            mu_difference = mu_real - mu_generated
+            fid_score = np.dot(mu_difference, mu_difference) + trace_cov_real + np.trace(cov_generated) - \
+                        2*np.trace(sqrtm(cov_real.dot(cov_generated), disp=False)[0])
+            print("Iteration %d, FID: %f, generated images: %d" % (i, fid_score.real, len(generated_features)))
 
 
 if __name__ == '__main__':
