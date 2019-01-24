@@ -13,8 +13,8 @@ from scipy.linalg import sqrtm
 
 DEF_DATASET_FOLDER = './data/big/processed'
 DEF_LABEL_FILE = './data/big/labels.txt'
-iterations = 100
-batch_size = 24
+iterations = 1000
+batch_size = 28
 
 
 def compute_features(self, x):
@@ -23,7 +23,7 @@ def compute_features(self, x):
         x_ch1 = torch.unsqueeze(x[:, 1], 1) * (0.224 / 0.5) + (0.456 - 0.5) / 0.5
         x_ch2 = torch.unsqueeze(x[:, 2], 1) * (0.225 / 0.5) + (0.406 - 0.5) / 0.5
         x = torch.cat((x_ch0, x_ch1, x_ch2), 1)
-        # 299 x 299 x 3
+    # 299 x 299 x 3
     x = self.Conv2d_1a_3x3(x)
     # 149 x 149 x 32
     x = self.Conv2d_2a_3x3(x)
@@ -123,9 +123,7 @@ def main(args):
     character_occurrences = dict()
     for label_file_row in label_file:
         key = ''.join(label_file_row)
-        character_occurrences[key] = character_occurrences.get(key, 0) + 1
-    for key in character_occurrences:
-        character_occurrences[key] /= len(label_file)
+        character_occurrences[key] = character_occurrences.get(key, 0) + 1/len(label_file)
     possible_character_combinations = list(character_occurrences.keys())
     character_occurrences = list(character_occurrences.values())
     print('done.')
@@ -137,12 +135,13 @@ def main(args):
             features_batch = compute_features(inception_model, batch.to(device))
             real_features.append(features_batch.cpu().detach().numpy())
         real_features = np.concatenate(real_features, axis=0)
-        # np.save('./data/big/inception_features.npy', real_features)
+        # np.save('./data/big/inception_features_299.npy', real_features)
     else:
         print('Loading Inception features for real data from specified file...', end='')
         real_features = np.load(args.precomputed_features)
     mu_real = np.mean(real_features, axis=0)
     cov_real = np.cov(real_features, rowvar=False)
+    trace_cov_real = np.trace(cov_real)
     print('done.')
 
     print('Starting evaluation...')
@@ -178,8 +177,9 @@ def main(args):
         # compute FID score
         mu_generated = np.mean(generated_features, axis=0)
         cov_generated = np.cov(generated_features, rowvar=False)
-        fid_score = np.linalg.norm(mu_real - mu_generated)**2 + \
-                    np.trace(cov_real + cov_generated - 2*sqrtm(cov_real.dot(cov_generated), disp=False)[0])
+        mu_difference = mu_real - mu_generated
+        fid_score = np.dot(mu_difference, mu_difference) + trace_cov_real + np.trace(cov_generated) - \
+                    2*np.trace(sqrtm(cov_real.dot(cov_generated), disp=False)[0])
         print("Iteration %d, FID: %f, generated images: %d" % (i, fid_score.real, len(generated_features)))
 
 
