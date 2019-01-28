@@ -1,13 +1,22 @@
 import matplotlib as mpl
-mpl.use('Agg')  # Needed if running on Google Cloud
+# mpl.use('Agg')  # Needed if running on Google Cloud
 
+import numpy as np
 import torch
 from utils.condition_encoding import character_to_one_hot
-from utils.global_vars import NOISE_LENGTH
+from utils.global_vars import NOISE_LENGTH, rectangle_shape, SUP_REMOVE_WIDTH, INF_REMOVE_WIDTH, IMAGE_WIDTH
+from model.componentsGAN import ConditionalGenerator
 from torch import Tensor
 from matplotlib.pyplot import figure, imshow
+from torchvision.transforms import Compose, ToTensor, Resize, ToPILImage
 
 accepted_image_extensions = ["jpg", "jpeg", "png", "bmp", "tiff"]
+final_image_height = (rectangle_shape[0] - SUP_REMOVE_WIDTH - INF_REMOVE_WIDTH) * IMAGE_WIDTH // rectangle_shape[1]
+finalizing_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_WIDTH)), ToTensor()])
+
+# Optimization modes
+MEAN_OF_THREE = 0
+CONTRAST_INCREASE = 1
 
 
 def generate(model, characters: tuple, style: int, device=torch.device('cpu')):
@@ -30,3 +39,26 @@ def produce_figure(img: Tensor, label: str):
 
 def is_image(filename):
     return any(filename.endswith("." + image_extension) for image_extension in accepted_image_extensions)
+
+
+def generate_resize(model: ConditionalGenerator, characters: tuple, style: int, device=torch.device('cpu')):
+    sample = generate(model, characters, style, device)
+    return finalizing_transform(sample.unsqueeze(0))[0, :, :]
+
+
+def generate_optimized(model: ConditionalGenerator, characters: tuple, style: int, mode: int, device=torch.device('cpu')):
+    if mode == MEAN_OF_THREE:
+        out1 = generate_resize(model, characters, style, device)
+        out2 = generate_resize(model, characters, style, device)
+        out3 = generate_resize(model, characters, style, device)
+        final = (out1 + out2 + out3) / 3
+        return final
+    elif mode == CONTRAST_INCREASE:
+        out1 = generate_resize(model, characters, style, device)
+        out1[out1 < 0.3] = 0
+        final = out1*10
+        return final
+
+
+def generate_optimized_from_string(model: ConditionalGenerator, text: str, style: int, mode: int, device=torch.device('cpu')):
+    return [generate_optimized(model, (text[i], text[i + 1], text[i + 2]), style, mode, device) for i in range(len(text) - 2)]

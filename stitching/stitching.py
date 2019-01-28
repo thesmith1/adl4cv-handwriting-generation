@@ -6,40 +6,49 @@ from os.path import join, isfile
 
 import numpy as np
 import torch
-from matplotlib.pyplot import imshow, show, figure
+from matplotlib.pyplot import imshow, show, figure, plot
 from torchvision.transforms import Compose, ToTensor, Resize, ToPILImage
 
 lib_path = os.path.abspath(os.path.join(__file__, '..'))
 sys.path.append(lib_path)
 
 from utils.global_vars import IMAGE_WIDTH, rectangle_shape, SUP_REMOVE_WIDTH, INF_REMOVE_WIDTH
+from utils.image_utils import generate, generate_optimized, MEAN_OF_THREE, CONTRAST_INCREASE
 
-height_dim = 2
+height_dim = 0
 width_dim = 1
-OVERLAP_LIMIT_THRESHOLD = 0.75
+OVERLAP_LIMIT_THRESHOLD = 0.95
 BLACK_CORRELATION_OFFSET = 0.3
+WINDOW_RAMP_PROPORTION = 0.25
 
 
-def stitch(t1: torch.Tensor, t2: torch.Tensor):
-    t1 = t1.numpy()
-    t2 = t2.numpy()
+# Accepts ndarrays or torch.Tensor of ndims=2
+def stitch(t1, t2):
+    if type(t1) == torch.Tensor:
+        t1 = t1.numpy()
+    if type(t2) == torch.Tensor:
+        t2 = t2.numpy()
     # Offset to include correlation on the black pixels
     t1 = t1 - BLACK_CORRELATION_OFFSET
     t2 = t2 - BLACK_CORRELATION_OFFSET
-    overlap_limit = int(t1.shape[width_dim] * OVERLAP_LIMIT_THRESHOLD)
+    overlap_limit = int(t2.shape[width_dim] * OVERLAP_LIMIT_THRESHOLD)
+    ramp_length = int((overlap_limit - 1) * WINDOW_RAMP_PROPORTION)
     corr_vals = []
+    window = np.ones((overlap_limit - 1, ))
+    window[:ramp_length] = np.linspace(0.3, 1, ramp_length)
+    window[-ramp_length:] = np.linspace(1, 0.3, ramp_length)
     for overlap_idx in range(1, overlap_limit):
-        normalization_coeff = t1[0, :, -overlap_idx:].shape[0] * t1[0, :, -overlap_idx:].shape[1]
-        corr = np.sum(np.sum((t1[0, :, -overlap_idx:] * t2[0, :, :overlap_idx]))) / normalization_coeff
+        normalization_coeff = t1[:, -overlap_idx:].shape[0] * t1[:, -overlap_idx:].shape[1]
+        corr = np.sum(np.sum((t1[:, -overlap_idx:] * t2[:, :overlap_idx]))) / normalization_coeff
         corr_vals.append(corr)
-    best_overlap_idx = np.argmax(corr_vals) + 1
+    best_overlap_idx = np.argmax(corr_vals * window) + 1
     # Correct offset
     t1 = t1 + BLACK_CORRELATION_OFFSET
     t2 = t2 + BLACK_CORRELATION_OFFSET
-    left = t1[0, :, :-best_overlap_idx]
-    common_area = t1[0, :, -best_overlap_idx:] + t2[0, :, :best_overlap_idx] / 2
-    right = t2[0, :, best_overlap_idx:]
-    return np.concatenate([left, common_area, right], axis=1)
+    left = t1[:, :-best_overlap_idx]
+    common_area = t1[:, -best_overlap_idx:] + t2[:, :best_overlap_idx] / 2
+    right = t2[:, best_overlap_idx:]
+    return np.concatenate([left, common_area, right], axis=1), corr_vals, corr_vals * window
 
 
 if __name__ == '__main__':
@@ -83,22 +92,32 @@ if __name__ == '__main__':
     else:
         raise Exception('Could not find the model')
 
+    # c1 = 'H'
+    # c2 = 'e'
+    # c3 = 'l'
+    # c4 = 'l'
+    # s1 = generate_optimized(g, (c1, c2, c3), style, CONTRAST_INCREASE, dev)
+    # s2 = generate_optimized(g, (c2, c3, c4), style, CONTRAST_INCREASE, dev)
+    # res, corr, w_corr = stitch(s1, s2)
+    # imshow(res, cmap='Greys_r')
+    # show()
+    # plot(corr)
+    # show()
+    # plot(w_corr)
+    # show()
+
     while True:
-        print('Enter a sequence of 4 characters:')
-        char_seq = input()
-        if char_seq == 'quit':
+        print('Enter some text:')
+        text = input()
+        if text == 'quit':
             break
-        assert len(char_seq) == 4
-        [prev_char, curr_char, next_char, last_char] = list(char_seq)
-
-        sample1 = g.generate((prev_char, curr_char, next_char), style)
-        sample2 = g.generate((curr_char, next_char, last_char), style)
-        sample1 = finalizing_transform(sample1.unsqueeze(0))
-        sample2 = finalizing_transform(sample2.unsqueeze(0))
-
-        # Stitch
-        res = stitch(sample1, sample2)
+        text = ' ' + text + ' '
+        characters = [generate_optimized(g, (text[i], text[i + 1], text[i + 2]), style, CONTRAST_INCREASE, dev) for i in
+                      range(len(text) - 2)]
+        total = characters[0]
+        for i in range(len(characters) - 1):
+            total, _, _ = stitch(total, characters[i + 1])
 
         f = figure()
-        imshow(res, cmap='Greys_r')
+        imshow(total, cmap='Greys_r')
         show()
