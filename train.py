@@ -33,7 +33,7 @@ if __name__ == '__main__':
                    type=str, default=None)
     p.add_argument('-a', '--add', help="Allows to specify the last letter added in the dataset on the previous train",
                    type=str, default=None)
-    p.add_argument('-s', '--soft-labels', help="Soft labeling (0.9) for real images",
+    p.add_argument('-s', '--soft-labels', help="Soft labeling (0.75) for real images",
                    action='store_true')
     args = p.parse_args()
 
