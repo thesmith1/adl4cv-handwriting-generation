@@ -13,7 +13,7 @@ lib_path = os.path.abspath(os.path.join(__file__, '..'))
 sys.path.append(lib_path)
 
 from utils.global_vars import IMAGE_WIDTH, rectangle_shape, SUP_REMOVE_WIDTH, INF_REMOVE_WIDTH
-from utils.image_utils import generate, generate_optimized, MEAN_OF_THREE, CONTRAST_INCREASE, THRESHOLD_SATURATE
+from utils.image_utils import generate, generate_optimized, MEAN_OF_THREE, CONTRAST_INCREASE
 
 height_dim = 0
 width_dim = 1
