@@ -101,29 +101,29 @@ def parse_args():
 def main(args):
 
     # load generator
-    print("Loading model to evaluate...", end='')
+    print("Loading model to evaluate...", end='\r')
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = torch.load(args.model_file)
     model.to(device=device)
     model.eval()
-    print('done.')
+    print('Loading model to evaluate...done.')
 
     # load inception_v3
-    print('Loading Inception model...', end='')
+    print('Loading Inception model...', end='\r')
     inception_model = inception_v3(pretrained=True)
     inception_model.to(device)
     inception_model.eval()
-    print('done.')
+    print('Loading Inception model...done.')
 
     # prepare dataset and data loader
-    print('Preparing data loaders...', end='')
+    print('Preparing data loaders...', end='\r')
     image_transform = Compose([lambda x: resize(x, (299, 299)), ToTensor()])
     real_image_dataset = DatasetFromFolder(root=arguments.dataset_folder, transform=image_transform)
     real_image_loader = DataLoader(real_image_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
-    print('done.')
+    print('Preparing data loaders...done.')
 
     # read label file to obtain conditional distribution
-    print('Processing label file...', end='')
+    print('Processing label file...', end='\r')
     label_file = np.loadtxt(args.label_file, delimiter=' ', dtype=str)[:, 1:4]
     label_file[label_file == '_'] = ' '
     character_occurrences = dict()
@@ -132,7 +132,7 @@ def main(args):
         character_occurrences[key] = character_occurrences.get(key, 0) + 1/len(label_file)
     possible_character_combinations = list(character_occurrences.keys())
     character_occurrences = list(character_occurrences.values())
-    print('done.')
+    print('Processing label file...done.')
 
     # compute or load Inception features for real data
     if args.precomputed_features is None:
@@ -151,7 +151,7 @@ def main(args):
     trace_cov_real = np.trace(cov_real)
     print('done.')
 
-    print('Starting evaluation...')
+    print('Evaluation started...')
     generated_features = None
     for i in range(1, iterations + 1):
 
