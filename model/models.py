@@ -113,7 +113,7 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
     Conditional Deep Convolutional GAN Discriminator from author of DCGAN paper
     Link to existing implementation: https://github.com/Newmu/dcgan_code/blob/master/mnist/train_cond_dcgan.py
     """
-    def __init__(self):
+    def __init__(self, wasserstein_output=False):
         super().__init__()
         self._device = None
         self._reshape_condition = Reshape((-1, NUM_CHARS * 3 + 1, 1, 1))
@@ -133,10 +133,10 @@ class ConditionalDCGANDiscriminator(ConditionalDiscriminator):
             nn.BatchNorm1d(1024),
             nn.LeakyReLU()
         )
-        self._linear2 = nn.Sequential(
-            nn.Linear(1024 + NUM_CHARS * 3 + 1, 1),
-            nn.Sigmoid()
-        )
+
+        self._linear2 = nn.Linear(1024 + NUM_CHARS * 3 + 1, 1)
+        if not wasserstein_output:
+            self._linear2 = nn.Sequential(self._linear2, nn.Sigmoid())
         self.apply(xavier_init)
 
     def to(self, *args, **kwargs):
