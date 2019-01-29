@@ -20,12 +20,19 @@ width_dim = 1
 OVERLAP_LIMIT_THRESHOLD = 0.95
 BLACK_CORRELATION_OFFSET = 0.3
 WINDOW_RAMP_PROPORTION = 0.25
+VERTICAL_T2_SHIFT = 8
 
+
+def shift_vertically(img, shift):
+    if shift > 0:
+        img = np.concatenate([img[shift:, :], np.zeros((shift, img.shape[width_dim]))], axis=0)
+    elif shift < 0:
+        img = np.concatenate([np.zeros((-shift, img.shape[width_dim])), img[:shift, :]], axis=0)
+    return img
 
 
 def stitch(t1, t2):
     """
-    Accepts ndarrays or torch.Tensor of ndims=2
     :param t1: ndarray|Tensor with number of dimensions = 2
     :param t2: ndarray|Tensor with number of dimensions = 2
     :return: ndarray containing t1, t2 stitched
@@ -36,30 +43,52 @@ def stitch(t1, t2):
     if type(t2) == torch.Tensor:
         t2 = t2.numpy()
 
+    # imshow(t1, cmap='Greys_r')
+    # figure()
+    # imshow(t2, cmap='Greys_r')
+    # show()
+
     # Offset to include correlation on the black pixels
     t1 = t1 - BLACK_CORRELATION_OFFSET
     t2 = t2 - BLACK_CORRELATION_OFFSET
     overlap_limit = int(t2.shape[width_dim] * OVERLAP_LIMIT_THRESHOLD)
-    ramp_length = int((overlap_limit - 1) * WINDOW_RAMP_PROPORTION)
 
-    # compute correlation
-    corr_values = []
+    # construct weight window
+    ramp_length = int((overlap_limit - 1) * WINDOW_RAMP_PROPORTION)
     window = np.ones((overlap_limit - 1, ))
     window[:ramp_length] = np.linspace(0.3, 1, ramp_length)
     window[-ramp_length:] = np.linspace(1, 0.3, ramp_length)
-    for overlap_idx in range(1, overlap_limit):
-        normalization_coefficient = t1[:, -overlap_idx:].shape[height_dim] * t1[:, -overlap_idx:].shape[width_dim]
-        corr = np.sum(np.sum((t1[:, -overlap_idx:] * t2[:, :overlap_idx]))) / normalization_coefficient
-        corr_values.append(corr)
-    best_overlap_idx = np.argmax(corr_values * window) + 1
 
-    # correct offset
+    # compute correlation
+    corr_values = np.zeros((VERTICAL_T2_SHIFT * 2 + 1, overlap_limit,))
+    for ver_shift in range(-VERTICAL_T2_SHIFT, VERTICAL_T2_SHIFT + 1):
+
+        # produce shifted version of t2
+        t2_shifted = shift_vertically(t2, ver_shift)
+
+        for overlap_idx in range(1, overlap_limit):
+            norm_coef = np.prod(t1[:, -overlap_idx:].shape)
+            corr_values[ver_shift, overlap_idx] = np.sum(t1[:, -overlap_idx:] * t2_shifted[:, :overlap_idx]) / norm_coef
+
+    best_overlap = np.argmax(corr_values[:, 1:] * window[None, :])
+    best_overlap_ver, best_overlap_hor = np.unravel_index(best_overlap, dims=corr_values[:, 1:].shape)
+    if best_overlap_ver > VERTICAL_T2_SHIFT:
+        best_overlap_ver -= corr_values.shape[height_dim]
+    best_overlap_hor += 1
+    # print(best_overlap_ver, -best_overlap_hor)
+
+    # insert vertical offset
+    t2 = shift_vertically(t2, best_overlap_ver)
+
+    # correct pixel value offset
     t1 = t1 + BLACK_CORRELATION_OFFSET
     t2 = t2 + BLACK_CORRELATION_OFFSET
-    left = t1[:, :-best_overlap_idx]
-    common_area = (t1[:, -best_overlap_idx:] + t2[:, :best_overlap_idx]) / 2
-    right = t2[:, best_overlap_idx:]
-    return np.concatenate([left, common_area, right], axis=1), corr_values, corr_values * window
+
+    # stitch
+    left = t1[:, :-best_overlap_hor]
+    common_area = (t1[:, -best_overlap_hor:] + t2[:, :best_overlap_hor]) / 2
+    right = t2[:, best_overlap_hor:]
+    return np.concatenate([left, common_area, right], axis=1), corr_values[1:], corr_values[:, 1:] * window[None, :]
 
 
 if __name__ == '__main__':
