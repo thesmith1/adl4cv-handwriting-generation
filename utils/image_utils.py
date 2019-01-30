@@ -1,7 +1,6 @@
 import matplotlib as mpl
 # mpl.use('Agg')  # Needed if running on Google Cloud
 
-import numpy as np
 import torch
 from utils.condition_encoding import character_to_one_hot
 from utils.global_vars import NOISE_LENGTH, rectangle_shape, SUP_REMOVE_WIDTH, INF_REMOVE_WIDTH, IMAGE_WIDTH
@@ -17,6 +16,7 @@ finalizing_transform = Compose([ToPILImage(), Resize((final_image_height, IMAGE_
 # Optimization modes
 MEAN_OF_THREE = 0
 CONTRAST_INCREASE = 1
+CONTRAST_STRENGTH = 5
 
 
 def generate(model, characters: tuple, style: int, device=torch.device('cpu')):
@@ -56,7 +56,7 @@ def generate_optimized(model: ConditionalGenerator, characters: tuple, style: in
     elif mode == CONTRAST_INCREASE:
         out1 = generate_resize(model, characters, style, device)
         out1[out1 < 0.3] = 0
-        final = out1*10
+        final = out1*CONTRAST_STRENGTH
         return final
 
 

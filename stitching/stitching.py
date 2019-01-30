@@ -3,7 +3,7 @@ import os
 import sys
 from os import listdir
 from os.path import join, isfile
-
+import cv2
 import numpy as np
 import torch
 from matplotlib.pyplot import imshow, show, figure
@@ -13,12 +13,12 @@ lib_path = os.path.abspath(os.path.join(__file__, '..'))
 sys.path.append(lib_path)
 
 from utils.global_vars import IMAGE_WIDTH, rectangle_shape, SUP_REMOVE_WIDTH, INF_REMOVE_WIDTH
-from utils.image_utils import generate_optimized, CONTRAST_INCREASE
+from utils.image_utils import generate_optimized, CONTRAST_INCREASE, CONTRAST_STRENGTH
 
 height_dim = 0
 width_dim = 1
 OVERLAP_LIMIT_THRESHOLD = 0.95
-BLACK_CORRELATION_OFFSET = 0.3
+BLACK_CORRELATION_OFFSET = 0.1
 WINDOW_RAMP_PROPORTION = 0.25
 VERTICAL_T2_SHIFT = 8
 
@@ -86,7 +86,8 @@ def stitch(t1, t2):
 
     # stitch
     left = t1[:, :-best_overlap_hor]
-    common_area = (t1[:, -best_overlap_hor:] + t2[:, :best_overlap_hor]) / 2
+    common_area = np.clip(t1[:, -best_overlap_hor:] + t2[:, :best_overlap_hor], 0, CONTRAST_STRENGTH)
+    # common_area = cv2.medianBlur((common_area/CONTRAST_STRENGTH*255).astype('uint8'), 3).astype('float32')/255*CONTRAST_STRENGTH
     right = t2[:, best_overlap_hor:]
     return np.concatenate([left, common_area, right], axis=1), corr_values[1:], corr_values[:, 1:] * window[None, :]
 
