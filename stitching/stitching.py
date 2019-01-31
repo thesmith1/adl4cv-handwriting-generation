@@ -21,6 +21,7 @@ OVERLAP_LIMIT_THRESHOLD = 0.95
 BLACK_CORRELATION_OFFSET = 0.1
 WINDOW_RAMP_PROPORTION = 0.25
 VERTICAL_T2_SHIFT = 8
+overlap_limit = int(IMAGE_WIDTH * OVERLAP_LIMIT_THRESHOLD)
 
 
 def shift_vertically(img, shift):
@@ -51,7 +52,6 @@ def stitch(t1, t2):
     # Offset to include correlation on the black pixels
     t1 = t1 - BLACK_CORRELATION_OFFSET
     t2 = t2 - BLACK_CORRELATION_OFFSET
-    overlap_limit = int(t2.shape[width_dim] * OVERLAP_LIMIT_THRESHOLD)
 
     # construct weight window
     ramp_length = int((overlap_limit - 1) * WINDOW_RAMP_PROPORTION)
