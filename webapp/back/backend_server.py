@@ -12,7 +12,7 @@ import torch
 
 from utils.image_utils import generate_optimized_from_string, CONTRAST_INCREASE
 from utils.global_vars import character_to_index_mapping
-from stitching import stitch
+from stitching.stitching import stitch
 
 app = Flask(__name__)
 cors = CORS(app)
