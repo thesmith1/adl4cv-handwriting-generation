@@ -2,9 +2,6 @@ import abc
 import os
 import sys
 
-from numpy.random import randn
-
-import torch
 from torch.autograd import Variable
 from torch.nn import Module
 
@@ -12,9 +9,6 @@ lib_path = os.path.abspath(os.path.join(__file__, '..'))
 sys.path.append(lib_path)
 ext_lib_path = os.path.abspath(os.path.join(__file__, '../utils'))
 sys.path.append(ext_lib_path)
-
-from utils.condition_encoding import character_to_one_hot
-from utils.global_vars import NOISE_LENGTH
 
 
 class ConditionalDiscriminator(Module, metaclass=abc.ABCMeta):
