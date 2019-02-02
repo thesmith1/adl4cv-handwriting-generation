@@ -1,16 +1,28 @@
-<div style="text-align:center; color: white">
+<div class="short">
+  <div style="text-align:center; color: white">
   <h1>
     {{ title }}
   </h1>
+  <mat-card class="card">
+    <mat-card-content>
+      <p>Welcome to the {{title}}!</p>
+      <p>Simply input some text in the box below (English is better) and look at the results</p>
+      <p><b>Pauses (>2s) in writing must be between words! (Do not stop before a non-space character)</b></p>
+    </mat-card-content>
+  </mat-card>
+
   <img *ngFor="let line of linesBase64" [src]="utils.sanitizeImageBase64(line)" alt="" style="width: 100%">
+  </div>
+
+  <div class="footer">
+    <mat-button-toggle-group #group="matButtonToggleGroup" (change)="selectedStyle = group.value">
+      <mat-button-toggle value="0" [checked]="selectedStyle === 0">Paolo</mat-button-toggle>
+      <mat-button-toggle value="1" [checked]="selectedStyle === 1">Giorgio</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field style="width: 100%">
+      <textarea matInput placeholder="Input text" #inputText style="color: white" (keyup)="onChange(inputText.value)"></textarea>
+      <mat-hint align="start">Writing in English yields better results</mat-hint>
+    </mat-form-field>
+  </div>
 </div>
-
-<mat-button-toggle-group #group="matButtonToggleGroup" (change)="selectedStyle = group.value">
-  <mat-button-toggle value="0" [checked]="selectedStyle === 0">Paolo</mat-button-toggle>
-  <mat-button-toggle value="1" [checked]="selectedStyle === 1">Giorgio</mat-button-toggle>
-</mat-button-toggle-group>
-
-<mat-form-field style="width: 100%">
-  <textarea matInput placeholder="Input text" #inputText style="color: white" (keyup)="onChange(inputText.value)"></textarea>
-  <mat-hint align="start">Writing in English yields better results</mat-hint>
-</mat-form-field>

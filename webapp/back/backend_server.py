@@ -23,7 +23,7 @@ default_model_name = 'G_2019-01-22 22_33_20.613720_3600'
 models_path = '../../data/models/'
 assets_path = 'assets/'
 encoding = 'utf-8'
-display_width = 1900  # pixels
+display_width = 800  # pixels
 characters_set = set(character_to_index_mapping.keys())
 characters_set.add(' ')
 
