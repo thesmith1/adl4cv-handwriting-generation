@@ -27,9 +27,6 @@ export class AppComponent implements OnInit {
   }
 
   public onChange(inputText: string) {
-    if (this.linesBase64.length === 0) {
-      this.linesBase64.push('');
-    }
     this._concurrencyCnt = this._concurrencyCnt + 1;
     this.utils.wait(this._globalVars.keyboardTimeout).then(() => {
       this._concurrencyCnt = this._concurrencyCnt - 1;
@@ -44,7 +41,11 @@ export class AppComponent implements OnInit {
             this.linesBase64[this.linesBase64.length - 1] = ret['completed_line'];
             this.linesBase64.push('');
           }
-          this.linesBase64[this.linesBase64.length - 1] = ret['current_line'];
+          if (this.linesBase64.length === 0) {
+            this.linesBase64.push(ret['current_line']);
+          } else {
+            this.linesBase64[this.linesBase64.length - 1] = ret['current_line'];
+          }
         });
       }
     });
