@@ -32,7 +32,7 @@ export class AppComponent implements OnInit {
       this._concurrencyCnt = this._concurrencyCnt - 1;
       if (this._concurrencyCnt === 0) {
         const index = this._text.length;
-        if (index === inputText.length) {
+        if (index === inputText.length || (index === inputText.length - 1 && inputText[inputText.length - 1] === ' ')) {
           return;
         }
         this._text = inputText;
