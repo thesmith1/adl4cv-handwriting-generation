@@ -14,8 +14,7 @@ export class AppComponent implements OnInit {
   private _text: string;
   private _concurrencyCnt: number;
   public selectedStyle: number;
-  public currentLineBase64 = '';
-  public linesBase64: Array<string> = [''];
+  public linesBase64: Array<string> = new Array<string>();
   constructor(private _backend: ToBackendService,
               public utils: UtilsService) {
     this._globalVars = new GlobalVars();
@@ -28,6 +27,9 @@ export class AppComponent implements OnInit {
   }
 
   public onChange(inputText: string) {
+    if (this.linesBase64.length === 0) {
+      this.linesBase64.push('');
+    }
     this._concurrencyCnt = this._concurrencyCnt + 1;
     this.utils.wait(this._globalVars.keyboardTimeout).then(() => {
       this._concurrencyCnt = this._concurrencyCnt - 1;
