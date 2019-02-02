@@ -195,6 +195,3 @@ class WCGAN:
                         self._writer.add_figure("Random characters/%d" % i, fig, global_step=iteration)
 
                 print("done.")
-
-
-
