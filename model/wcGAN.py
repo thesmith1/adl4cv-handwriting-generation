@@ -162,8 +162,8 @@ class WCGAN:
             # save
             if iteration % save_every == 0:
                 print("Saving...", end='')
-                torch.save(self._G, "../data/models/G_W_{}.pt".format(str(self._current_datetime)))
-                torch.save(self._D, "../data/models/D_W_{}.pt".format(str(self._current_datetime)))
+                torch.save(self._G, "./data/models/G_W_{}.pt".format(str(self._current_datetime)))
+                torch.save(self._D, "./data/models/D_W_{}.pt".format(str(self._current_datetime)))
                 print("done.")
 
             # produce graphical results
