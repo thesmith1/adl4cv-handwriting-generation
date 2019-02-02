@@ -69,6 +69,33 @@ def black_pad(line: np.ndarray):
     return np.concatenate([line, pad_arr], axis=1)
 
 
+def flush_to_current_line(new_portion, style, index):
+    if new_portion is not None:
+        append_to_current_line(new_portion, style, index)
+    completed_line = state['current_line']
+    state['current_line'] = None
+    return completed_line, index
+
+
+def append_to_current_line(new_portion, style, index):
+    if state['current_line'] is not None:
+        last_char = state['text'][index - 1]
+        first_new_char = state['text'][index + 1]
+        space_image = generate_optimized_from_string(g, last_char + ' ' + first_new_char, style,
+                                                     CONTRAST_INCREASE, device=dev)[0]
+        state['current_line'], _, _ = stitch(state['current_line'], space_image)
+        state['current_line'], _, _ = stitch(state['current_line'], new_portion)
+    else:
+        state['current_line'] = new_portion
+
+
+def get_current_line_width():
+    if state['current_line'] is None:
+        return 0
+    else:
+        return state['current_line'].shape[1]
+
+
 @app.route('/')
 def index():
     return 'Index Page!'
@@ -83,6 +110,8 @@ def insert():
     params = request.json
     ret = {}
     input_text = ''
+    is_new_line = False
+    completed_line = None
     # Clean text from unwanted characters
     for char in params['text']:
         if char in characters_set:
@@ -102,30 +131,33 @@ def insert():
                 word_image, _, _ = stitch(word_image, word_characters[i + 1])  # Stitch characters of a word
             new_words_images.append(word_image)
         state['words'].extend(new_words_images)  # Update the state with the images of the new words
-        # Stitch words together to form the new current line
         new_portion = new_words_images[0]
+        if get_current_line_width() + new_portion.shape[1] > display_width:
+            is_new_line = True
+            completed_line, index = flush_to_current_line(None, params['style'], index)
         for i in range(len(new_words_images) - 1):
-            prev_word = new_words[i]
-            next_word = new_words[i + 1]
-            space_image = generate_optimized_from_string(g, prev_word[-1] + ' ' + next_word[0], params['style'], CONTRAST_INCREASE, device=dev)[0]
-            new_portion, _, _ = stitch(new_portion, space_image)
-            new_portion, _, _ = stitch(new_portion, new_words_images[i + 1])
-        # Possibly, attach the new content to the existing current line
-        if state['current_line'] is not None:
-            last_char = state['text'][index - 1]
-            first_new_char = state['text'][index + 1]
-            space_image = generate_optimized_from_string(g, last_char + ' ' + first_new_char, params['style'], CONTRAST_INCREASE, device=dev)[0]
-            state['current_line'], _, _ = stitch(state['current_line'], space_image)
-            state['current_line'], _, _ = stitch(state['current_line'], new_portion)
-        else:
-            state['current_line'] = new_portion
-
-        # Insert at the end, using current_line
-        pass
+            if get_current_line_width() + new_portion.shape[1] + new_words_images[i + 1].shape[1] > display_width:
+                is_new_line = True
+                completed_line, index = flush_to_current_line(new_portion, params['style'], index)
+                new_portion = new_words_images[i + 1]
+            else:
+                prev_word = new_words[i]
+                next_word = new_words[i + 1]
+                space_image = generate_optimized_from_string(g, prev_word[-1] + ' ' + next_word[0], params['style'],
+                                                             CONTRAST_INCREASE, device=dev)[0]
+                new_portion, _, _ = stitch(new_portion, space_image)
+                new_portion, _, _ = stitch(new_portion, new_words_images[i + 1])
+        append_to_current_line(new_portion, params['style'], index)
     else:
         # Insert in the middle
         pass
     # Build response
+    ret['is_new_line'] = False
+    if is_new_line:
+        ret['is_new_line'] = True
+        ret['completed_line'] = completed_line
+        ret['completed_line'] = black_pad(ret['completed_line'])
+        ret['completed_line'] = ndarray_to_base64(ret['completed_line'])
     ret['current_line'] = state['current_line']
     ret['current_line'] = black_pad(ret['current_line'])
     ret['current_line'] = ndarray_to_base64(ret['current_line'])

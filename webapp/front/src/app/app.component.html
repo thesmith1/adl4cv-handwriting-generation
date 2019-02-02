@@ -1,8 +1,8 @@
-<div style="text-align:center">
+<div style="text-align:center; color: white">
   <h1>
     {{ title }}
   </h1>
-  <img [src]="utils.sanitizeImageBase64(this.currentLineBase64)" alt="" style="width: 100%">
+  <img *ngFor="let line of linesBase64" [src]="utils.sanitizeImageBase64(line)" alt="" style="width: 100%">
 </div>
 
 <mat-button-toggle-group #group="matButtonToggleGroup" (change)="selectedStyle = group.value">
@@ -10,9 +10,7 @@
   <mat-button-toggle value="1" [checked]="selectedStyle === 1">Giorgio</mat-button-toggle>
 </mat-button-toggle-group>
 
-<button mat-button (click)="reset()">Reset</button>
-
 <mat-form-field style="width: 100%">
-  <textarea matInput placeholder="Input text" #inputText (keyup)="onChange(inputText.value)"></textarea>
+  <textarea matInput placeholder="Input text" #inputText style="color: white" (keyup)="onChange(inputText.value)"></textarea>
   <mat-hint align="start">Writing in English yields better results</mat-hint>
 </mat-form-field>

@@ -15,6 +15,7 @@ export class AppComponent implements OnInit {
   private _concurrencyCnt: number;
   public selectedStyle: number;
   public currentLineBase64 = '';
+  public linesBase64: Array<string> = [''];
   constructor(private _backend: ToBackendService,
               public utils: UtilsService) {
     this._globalVars = new GlobalVars();
@@ -32,16 +33,18 @@ export class AppComponent implements OnInit {
       this._concurrencyCnt = this._concurrencyCnt - 1;
       if (this._concurrencyCnt === 0) {
         const index = this._text.length;
+        if (index === inputText.length) {
+          return;
+        }
         this._text = inputText;
-        this._backend.generateImageFromString(this._text, this.selectedStyle, index).subscribe((ret) => {
-          this.currentLineBase64 = ret['current_line'];
+        this._backend.generateImageFromString(this._text, Number(this.selectedStyle), index).subscribe((ret) => {
+          if (ret['is_new_line']) {
+            this.linesBase64[this.linesBase64.length - 1] = ret['completed_line'];
+            this.linesBase64.push('');
+          }
+          this.linesBase64[this.linesBase64.length - 1] = ret['current_line'];
         });
       }
     });
-  }
-
-  public reset() {
-    this._text = '';
-    this.currentLineBase64 = '';
   }
 }
