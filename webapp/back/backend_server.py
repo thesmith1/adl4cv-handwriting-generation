@@ -9,10 +9,11 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import torch
+from matplotlib.pyplot import imshow, show
 
 from utils.image_utils import generate_optimized_from_string, CONTRAST_INCREASE
 from utils.global_vars import character_to_index_mapping
-from stitching.stitching import stitch
+from stitching import stitch
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -80,7 +81,10 @@ def flush_to_current_line(new_portion, style, index):
 def append_to_current_line(new_portion, style, index):
     if state['current_line'] is not None:
         last_char = state['text'][index - 1]
-        first_new_char = state['text'][index + 1]
+        if len(state['text']) > index + 1:
+            first_new_char = state['text'][index + 1]
+        else:
+            first_new_char = ' '
         space_image = generate_optimized_from_string(g, last_char + ' ' + first_new_char, style,
                                                      CONTRAST_INCREASE, device=dev)[0]
         state['current_line'], _, _ = stitch(state['current_line'], space_image)
@@ -143,8 +147,12 @@ def insert():
             else:
                 prev_word = new_words[i]
                 next_word = new_words[i + 1]
-                space_image = generate_optimized_from_string(g, prev_word[-1] + ' ' + next_word[0], params['style'],
+                prev_letter = prev_word[-2]
+                next_letter = next_word[1]
+                space_image = generate_optimized_from_string(g, prev_word[-2] + ' ' + next_word[1], params['style'],
                                                              CONTRAST_INCREASE, device=dev)[0]
+                # imshow(space_image, cmap='Greys_r')
+                # show()
                 new_portion, _, _ = stitch(new_portion, space_image)
                 new_portion, _, _ = stitch(new_portion, new_words_images[i + 1])
         append_to_current_line(new_portion, params['style'], index)
