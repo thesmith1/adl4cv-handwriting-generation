@@ -1,7 +1,8 @@
 import time
 import argparse
+import sys
 from os import listdir
-from os.path import join, isfile
+from os.path import join, isfile, abspath
 import datetime
 from tensorboardX import SummaryWriter
 from numpy.random import randn, choice
@@ -13,11 +14,16 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, ToTensor, Resize, ToPILImage
 
 from componentsGAN import ConditionalGenerator, ConditionalDiscriminator
-from condition_encoding import character_to_one_hot
+from models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
+
+lib_path = abspath(join(__file__, '..'))
+sys.path.append(lib_path)
+
 from data_management.character_dataset import CharacterDataset
+from utils.condition_encoding import character_to_one_hot
 from utils.global_vars import *
 from utils.image_utils import generate, produce_figure
-from model.models import ConditionalDCGANGenerator, ConditionalDCGANDiscriminator
+
 
 clamp_limit = 1e-2
 eta_critic = 5
