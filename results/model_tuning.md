@@ -55,8 +55,20 @@
     <td>1300</td>
     <td>5e-5</td>
     <td>N.A.</td>
-    <td>0.75</td>
+    <td>N.A.</td>
     <td>213</td>   
 </tr>
 
+<tr>
+    <td>G_W_2019-02-02 13_47_06.338294.pt</td> 
+    <td>500*</td> 
+    <td>34000*</td>
+    <td>0</td>
+    <td>N.A.</td>
+    <td>N.A.</td>
+    <td>176</td>   
+</tr>
+
 </table>
+
+*iterations, not epochs
