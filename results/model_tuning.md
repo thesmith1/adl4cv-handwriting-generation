@@ -69,6 +69,16 @@
     <td>176</td>   
 </tr>
 
+<tr>
+    <td>G_2019-02-03 17:38:03.817469.pt</td> 
+    <td>1</td> 
+    <td>200</td>
+    <td>1e-4</td>
+    <td>0.2</td>
+    <td>0.75</td>
+    <td>185</td>   
+</tr>
+
 </table>
 
 *iterations, not epochs
