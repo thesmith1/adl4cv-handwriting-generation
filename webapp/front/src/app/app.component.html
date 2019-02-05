@@ -7,7 +7,8 @@
     <mat-card-content>
       <p>Welcome to {{title}}!</p>
       <p>Simply input some text in the box below (English is better) and look at the results</p>
-      <p><b>Pauses (>1s) in writing must be between words! (Do not stop before a non-space character)</b></p>
+      <p><b>Pauses (>{{_globalVars.keyboardTimeout}}ms) in writing must be between words! (Do not stop before a non-space character)</b></p>
+      <p><b>After a word is generated, it cannot be changed anymore</b></p>
     </mat-card-content>
   </mat-card>
 

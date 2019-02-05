@@ -12,7 +12,7 @@ import torch
 from matplotlib.pyplot import imshow, show
 
 from utils.image_utils import generate_optimized_from_string, CONTRAST_INCREASE
-from utils.global_vars import character_to_index_mapping
+from utils.global_vars import character_to_index_mapping, IMAGE_WIDTH
 from stitching import stitch
 
 app = Flask(__name__)
@@ -154,7 +154,7 @@ def insert():
             is_new_line = True
             completed_line, index = flush_to_current_line(None, params['style'], index)
         for i in range(len(new_words_images) - 1):
-            if get_current_line_width() + new_portion.shape[1] + new_words_images[i + 1].shape[1] > display_width:
+            if get_current_line_width() + new_portion.shape[1] + new_words_images[i + 1].shape[1] + IMAGE_WIDTH > display_width:
                 is_new_line = True
                 completed_line, index = flush_to_current_line(new_portion, params['style'], index)
                 new_portion = new_words_images[i + 1]

@@ -1,4 +1,4 @@
 export class GlobalVars {
   public backendUrl = 'http://localhost:5000';
-  public keyboardTimeout = 1000;
+  public keyboardTimeout = 750;
 }
