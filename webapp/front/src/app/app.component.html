@@ -5,9 +5,9 @@
   </h1>
   <mat-card class="card">
     <mat-card-content>
-      <p>Welcome to the {{title}}!</p>
+      <p>Welcome to {{title}}!</p>
       <p>Simply input some text in the box below (English is better) and look at the results</p>
-      <p><b>Pauses (>2s) in writing must be between words! (Do not stop before a non-space character)</b></p>
+      <p><b>Pauses (>1s) in writing must be between words! (Do not stop before a non-space character)</b></p>
     </mat-card-content>
   </mat-card>
 
@@ -19,6 +19,8 @@
       <mat-button-toggle value="0" [checked]="selectedStyle === 0">Paolo</mat-button-toggle>
       <mat-button-toggle value="1" [checked]="selectedStyle === 1">Giorgio</mat-button-toggle>
     </mat-button-toggle-group>
+
+    <button mat-flat-button color="accent" style="position: absolute; right: 0" (click)="reset()">Reset</button>
 
     <mat-form-field style="width: 100%">
       <textarea matInput placeholder="Input text" #inputText style="color: white" (keyup)="onChange(inputText.value)"></textarea>

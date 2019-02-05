@@ -30,4 +30,8 @@ export class ToBackendService {
     };
     return this.doRequest(body, '/insert');
   }
+  public reset(): Observable<Object> {
+    const body = {};
+    return this.doRequest(body, '/reset');
+  }
 }

@@ -20,6 +20,7 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 default_model_name = 'G_2019-01-22 22_33_20.613720_3600'
+# default_model_name = 'G_2019-02-04 09:01:01.951969'
 models_path = '../../data/models/'
 assets_path = 'assets/'
 encoding = 'utf-8'
@@ -105,6 +106,19 @@ def index():
     return 'Index Page!'
 
 
+@app.route('/reset', methods=['POST'], strict_slashes=False)
+@cross_origin()
+def reset():
+    del state['words'][:]
+    del state['current_line']
+    state['current_line'] = None
+    state['text'] = ''
+    ret = {'success': True}
+    response = jsonify(ret)
+    response.status_code = 200
+    return response
+
+
 @app.route('/insert', methods=['POST'], strict_slashes=False)
 @cross_origin()
 def insert():
@@ -147,12 +161,8 @@ def insert():
             else:
                 prev_word = new_words[i]
                 next_word = new_words[i + 1]
-                prev_letter = prev_word[-2]
-                next_letter = next_word[1]
                 space_image = generate_optimized_from_string(g, prev_word[-2] + ' ' + next_word[1], params['style'],
                                                              CONTRAST_INCREASE, device=dev)[0]
-                # imshow(space_image, cmap='Greys_r')
-                # show()
                 new_portion, _, _ = stitch(new_portion, space_image)
                 new_portion, _, _ = stitch(new_portion, new_words_images[i + 1])
         append_to_current_line(new_portion, params['style'], index)

@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ViewChild} from '@angular/core';
 import {ToBackendService} from './services/to-backend.service';
 import {UtilsService} from './services/utils.service';
 import {GlobalVars} from './global-vars';
@@ -9,12 +9,13 @@ import {GlobalVars} from './global-vars';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  title = 'Title of the application';
+  title = 'The GANuscript';
   private _globalVars: GlobalVars;
   private _text: string;
   private _concurrencyCnt: number;
   public selectedStyle: number;
   public linesBase64: Array<string> = new Array<string>();
+  @ViewChild('inputText') textareaValue;
   constructor(private _backend: ToBackendService,
               public utils: UtilsService) {
     this._globalVars = new GlobalVars();
@@ -48,6 +49,21 @@ export class AppComponent implements OnInit {
           }
         });
       }
+    });
+  }
+
+  public reset() {
+    this._backend.reset().subscribe((res) => {
+      if (res['success']) {
+        this._text = '';
+        this._concurrencyCnt = 0;
+        this.linesBase64 = new Array<string>();
+        this.textareaValue.nativeElement.value = '';
+      } else {
+        console.error('Error on backend!');
+      }
+    }, error1 => {
+      console.log(error1);
     });
   }
 }
