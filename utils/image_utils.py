@@ -59,6 +59,8 @@ def generate_optimized(model: ConditionalGenerator, characters: tuple, style: in
         out1[out1 < 0.3] = 0
         final = clip(out1*CONTRAST_STRENGTH, 0, 1)
         return final
+    else:
+        raise ValueError("Invalid mode %d" % mode)
 
 
 def generate_optimized_from_string(model: ConditionalGenerator, text: str, style: int, mode: int, device=torch.device('cpu')):
