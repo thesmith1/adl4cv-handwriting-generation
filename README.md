@@ -46,7 +46,7 @@ model (or conditional Wasserstein DCGAN).
 In order to test the generation of _single characters_, use the script `test.py`, that produces results in Tensorboard.
 
 In order to test the generation of entire sentences, the webapp can be used.
-Launch the script `webapp/back/backend_server.py` to serve the backend.
+Launch the script `backend_server.py` to serve the backend. This script must be launched from its folder, not from the root of the project.
 From the folder `webapp/front` launch `ng serve` on the command line to serve the frontend. This will compile the frontend
 and will make it accessible on the browser at the address `localhost:4200`.
 
