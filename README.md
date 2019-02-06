@@ -38,10 +38,13 @@ needed by the app.
 
 ### Test
 One model is already available inside the submission, for testing purposes.
+
 In order to test the generation of _single characters_, use the script `test.py`, that produces results in Tensorboard.
 To check such results in Tensorboard (available at localhost:6006):
 
 ```tensorboard --logdir model/runs```
+
+The model to test has to be specified with the "-m" option followed by a string present inside the model name.
 
 In order to test the generation of _entire sentences_, the webapp can be used.
 Launch the script `backend_server.py` to serve the backend. This script must be launched from its folder, not from the root of the project.
