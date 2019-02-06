@@ -26,11 +26,11 @@ SUP_REMOVE_WIDTH = 25
 INF_REMOVE_WIDTH = 105
 
 # training
-batch_size = 32
+batch_size = 64
 dis_lr = 1e-4
 gen_lr = 1e-4
 dis_l2_reg = 0
-gen_l2_reg = 0
+gen_l2_reg = 1e-4
 save_every = 50
 add_character_every = 50
 produce_every = 25
@@ -39,8 +39,8 @@ D_loss_threshold = 0.3
 G_loss_threshold = 0.3
 
 # network
-IMAGE_WIDTH = 32
-IMAGE_HEIGHT = 32
+IMAGE_WIDTH = 48
+IMAGE_HEIGHT = 48
 NOISE_LENGTH = 100
 character_to_index_mapping = {
     'A': 0,

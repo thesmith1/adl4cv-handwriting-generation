@@ -1,4 +1,5 @@
 import argparse
+import os, sys
 from os import listdir
 from os.path import join, isfile
 import base64
@@ -9,11 +10,13 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import torch
-from matplotlib.pyplot import imshow, show
+
+lib_path = os.path.abspath(os.path.join(__file__, '../../..'))
+sys.path.append(lib_path)
 
 from utils.image_utils import generate_optimized_from_string, CONTRAST_INCREASE
 from utils.global_vars import character_to_index_mapping, IMAGE_WIDTH
-from stitching import stitch
+from stitching.stitching import stitch
 
 app = Flask(__name__)
 cors = CORS(app)
