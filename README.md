@@ -54,9 +54,9 @@ Alternatively, one can use the script `stitching/stitching.py` to see the result
 
 ### Training
 
-To perform a new training, the dataset is required. It is available at this address: https://drive.google.com/file/d/1wFOkU1hssaZWpzkJWPtvat8hPz0k2pEu/view?usp=sharing
+To perform a new training, the dataset is required. If you want to download it, please write an e-mail to [mailto](mailto:giorgio.fabbro@tum.de) or [mailto](mailto:paolo.notaro@tum.de) and we'll provide you with a download link.
 
-Once big.zip has been downloaded, copy it and extract it in the "data" folder. The now unzipped folder "big" must contain a folder (the already processed images) and two files (the Inception features required to evaluate the FID score, and the label file for the dataset).
+Once the dataset has been downloaded, copy it and extract it in the "data" folder. The now unzipped folder "big" must contain a folder (the already processed images) and two files (the Inception features required to evaluate the FID score, and the label file for the dataset).
 
 Once installed the virtual environment, use the script `train.py` (or `train_wasserstein.py`) to train a conditional DCGAN
 model (or conditional Wasserstein DCGAN).
