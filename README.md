@@ -54,7 +54,7 @@ Alternatively, one can use the script `stitching/stitching.py` to see the result
 
 ### Training
 
-To perform a new training, the dataset is required. If you want to download it, please write an e-mail to [mailto](mailto:giorgio.fabbro@tum.de) or [mailto](mailto:paolo.notaro@tum.de) and we'll provide you with a download link.
+To perform a new training, the dataset is required. If you want to download it, please write an e-mail to [Giorgio Fabbro](mailto:giorgio.fabbro@tum.de) or [Paolo Notaro](mailto:paolo.notaro@tum.de) and we'll provide you with a download link.
 
 Once the dataset has been downloaded, copy it and extract it in the "data" folder. The now unzipped folder "big" must contain a folder (the already processed images) and two files (the Inception features required to evaluate the FID score, and the label file for the dataset).
 
