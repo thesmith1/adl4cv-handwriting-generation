@@ -37,8 +37,6 @@ needed by the app.
 ## Usage
 
 ### Test
-One model is already available inside the submission, for testing purposes.
-
 In order to test the generation of _single characters_, use the script `test.py`, that produces results in Tensorboard.
 To check such results in Tensorboard (available at localhost:6006):
 
